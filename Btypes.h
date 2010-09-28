@@ -41,6 +41,8 @@ typedef struct BMesg_
   char code[MAX_CODE];
 } BMesg;
 
+#define MAX(a,b) (a>b?a:b)
+#define MIN(a,b) (a<b?a:b)
 
 BMesg *CreateBMesg(int, int, int);
 BMesg *CreateEmptyBMesg();

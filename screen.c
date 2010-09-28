@@ -55,6 +55,12 @@ void main_menu()
 {
   int user_mode;
   Player *player;
+  /* some testing modes: */
+#ifdef TEST_SHIPS
+  initShips();
+  return;
+#endif
+
   title_screen();
   printw("Enter your name: ");
   getstr(name);
@@ -141,12 +147,13 @@ void return_cords(int * x, int * y) {
     } 
 }
 
-void display_boards(void) {
+void display_boards(void)
+{
   int startx, starty, width, height; 
   int stat_width, stat_height;
 
   char players_grid[BOARD_SIZE][BOARD_SIZE];
-    
+
   int x,y,res;
   int f, h = 0;
   char t;
@@ -156,7 +163,7 @@ void display_boards(void) {
 
   cbreak();
   noecho();                       
-                                        
+
   keypad(stdscr, TRUE);            
   height = 3+BOARD_SIZE; 
   width = 14+BOARD_SIZE; 
@@ -164,7 +171,7 @@ void display_boards(void) {
   startx = (COLS - width) / 2;    
   clear();
   refresh(); 
-    
+
   player_win = newwin(height, width, starty, startx+20); 
   box(player_win, 0, 0);
   wrefresh(player_win);
@@ -214,7 +221,7 @@ void display_boards(void) {
   refresh();
   wrefresh(player_win);
   wrefresh(status_win); 
-    
+
   attroff(A_UNDERLINE);
 
 }

@@ -3,6 +3,7 @@
 #include <ncurses.h>
 #include "gamepieces.h"
 #include "screen.h"
+#include "Btypes.h"
 
 
 extern  WINDOW *player_win;
@@ -224,39 +225,43 @@ void initShips()
 
   //choose a "map"
   //    int MAP = randNum(0,NUM_MAPS-1);
-  int MAP;
+  int MAP = 0;
+  int ch;
+  bool done = false;
+  curs_set(0);
 
-  for(;;) { //they must choose a valid map
-    printw("\nWhich map would you like to use? (1-%d) ", NUM_MAPS);
-    scanw("%d", &MAP);
-    if (MAP < 1 || MAP > NUM_MAPS) {
-      printw("Invalid map choice. Press a key to try again\n");
-      refresh();
-      getch();
-      clear();
-      continue;
+  while (!done) {
+    for (i=0; i<NUM_SHIPS; i++) {
+      //place according to randomly chosen map:
+      Shipset[i].x = Mapset[MAP][i].x;
+      Shipset[i].y = Mapset[MAP][i].y;
+      Shipset[i].direction = Mapset[MAP][i].direction;
+
+      //set as healthy:
+      Shipset[i].sunk = 0;
+      for (j=0; j<Shipset[i].size; j++)
+	Shipset[i].slots[j] = 0;
     }
-    break;
+
+    display_boards();
+    mvprintw(1,1,"Press up/down to select a map, or space to keep this map");
+    mvprintw(2,8,"Map %d of %d", MAP+1, NUM_MAPS);
+    echo();
+    ch = getch();
+    switch (ch) {
+    case KEY_DOWN:
+      MAP = MIN(NUM_MAPS-1,MAP+1);
+      break;
+    case KEY_UP:
+      MAP = MAX(0,MAP-1);
+      break;
+    case ' ':
+      done = true;
+      break;
+    } /* eo switch */
+
   }
 
-  MAP--; //make it an index
-
-  for (i=0; i<NUM_SHIPS; i++) {
-    //place according to randomly chosen map:
-    Shipset[i].x = Mapset[MAP][i].x;
-    Shipset[i].y = Mapset[MAP][i].y;
-    Shipset[i].direction = Mapset[MAP][i].direction;
-    printw("\nSetting up %s:\tx: %d\ty: %d\tdir: %d\n", Shipset[i].name, Mapset[MAP][i].x, Mapset[MAP][i].y, Mapset[MAP][i].direction);
-
-    //set as healthy:
-    Shipset[i].sunk = 0;
-    for (j=0; j<Shipset[i].size; j++)
-      Shipset[i].slots[j] = 0;
-  }
-
-  printw("press key to continue...\n");
-  refresh();
-  getch();
 }
 
 
