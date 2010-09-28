@@ -3,8 +3,8 @@
 
 struct player_pos_
 {
-     int x;
-     int y;
+  int x;
+  int y;
 }; 
 
 
