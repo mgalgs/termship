@@ -1,0 +1,14 @@
+termship
+========
+
+ncurses-based, network-enabled Battleship clone.
+
+Written by:
+	Mitchel Humpherys
+	Weslee Frisby
+
+Building
+========
+ * Install ncurses with development headers
+ * type `make`
+ * profit?
