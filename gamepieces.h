@@ -65,6 +65,8 @@ void printShips();
 void initShips();
 int randNum(const int, const int);
 
+/* checks the placement of a ship */
+bool valid_placement(Ship *);
 
 #endif
 

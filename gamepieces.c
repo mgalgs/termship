@@ -4,6 +4,7 @@
 #include "gamepieces.h"
 #include "screen.h"
 #include "Btypes.h"
+#include "log.h"
 
 
 extern  WINDOW *player_win;
@@ -81,15 +82,16 @@ Ship Shipset[] = {
  */
 
 
-void create_grid(char grid[BOARD_SIZE][BOARD_SIZE]) {
+void create_grid(char grid[BOARD_SIZE][BOARD_SIZE])
+{
   int x, y, dir, size, i,j;
   for (i = 0; i< BOARD_SIZE; i++) {
     for(j = 0; j< BOARD_SIZE; j++) {
       grid[i][j]='_';
     }
   }
-  
-  for (i=0;i< NUM_SHIPS; i++) {
+
+  for (i=0; i<NUM_SHIPS; i++) {
     x = Shipset[i].x;
     y = Shipset[i].y;
     dir = Shipset[i].direction;
@@ -99,13 +101,12 @@ void create_grid(char grid[BOARD_SIZE][BOARD_SIZE]) {
       for (j=0;j<size; j++) {
 	grid[y+j][x]='*';
       }
-    }
-    else {
+    } else {
       for (j=0;j<size; j++) {
 	grid[y][x+j]='*';
       }
-    }
-  }
+    } /* eo if(dir) */
+  }   /* eo for each ship */
 }
 
 
@@ -224,46 +225,109 @@ void initShips()
   int i,j;
 
   //choose a "map"
-  //    int MAP = randNum(0,NUM_MAPS-1);
-  int MAP = 0;
   int ch;
+  int current_editing_ship = 0;
+  int origx, origy, origdir;
+  Ship *curship;
   bool done = false;
+  int scratch=0;
+  char msg[50];
   curs_set(0);
 
   while (!done) {
-    for (i=0; i<NUM_SHIPS; i++) {
-      //place according to randomly chosen map:
-      Shipset[i].x = Mapset[MAP][i].x;
-      Shipset[i].y = Mapset[MAP][i].y;
-      Shipset[i].direction = Mapset[MAP][i].direction;
+    scratch++;
+    curship = &(Shipset[current_editing_ship]);
+    origx = curship->x;
+    origy = curship->y;
+    origdir = curship->direction;
 
-      //set as healthy:
-      Shipset[i].sunk = 0;
-      for (j=0; j<Shipset[i].size; j++)
-	Shipset[i].slots[j] = 0;
-    }
+    /* for (i=0; i<NUM_SHIPS; i++) { */
+    /*   //place according to chosen map: */
+    /*   Shipset[i].x = Mapset[MAP][i].x; */
+    /*   Shipset[i].y = Mapset[MAP][i].y; */
+    /*   Shipset[i].direction = Mapset[MAP][i].direction; */
+
+    /*   //set as healthy: */
+    /*   Shipset[i].sunk = 0; */
+    /*   for (j=0; j<Shipset[i].size; j++) */
+    /* 	Shipset[i].slots[j] = 0; */
+    /* } */
 
     display_boards();
-    mvprintw(1,1,"Press up/down to select a map, or space to keep this map");
-    mvprintw(2,8,"Map %d of %d", MAP+1, NUM_MAPS);
+    mvprintw(0,1,"Use arrows to place ship, 'r' to rotate, space to select another ship.");
+    mvprintw(1,1,"Press enter to finish.");
+    mvprintw(2,8, "Placing ship: \"%s\"", curship->name);
     echo();
     ch = getch();
+    /* sprintf(msg, "got key: %d\n", ch); */
+    /* write_to_log(msg); */
     switch (ch) {
     case KEY_DOWN:
-      MAP = MIN(NUM_MAPS-1,MAP+1);
+      curship->y++;
       break;
     case KEY_UP:
-      MAP = MAX(0,MAP-1);
+      curship->y--;
+      break;
+    case KEY_LEFT:
+      curship->x--;
+      break;
+    case KEY_RIGHT:
+      curship->x++;
       break;
     case ' ':
+      current_editing_ship = current_editing_ship == NUM_SHIPS-1 ? 0 : current_editing_ship+1;
+      break;
+    case 'r':
+      curship->direction = !curship->direction;
+      break;
+    case 10:
+    case KEY_ENTER:
+      write_to_log("maybe continuing...\n");
       done = true;
+      for (i=0; i<NUM_SHIPS; i++) {
+	if (!valid_placement(&(Shipset[i]))) {
+	  sprintf(msg, "Can't continue, \"%s\" is in a bad spot: %d,%d", Shipset[i].name, Shipset[i].x, Shipset[i].y);
+	  write_to_log(msg);
+	  done = false;
+	}
+      }
+      if (!done) {
+	mvprintw(2,8,"Not all your ships are in valid locations");
+      }
       break;
     } /* eo switch */
-
-  }
+    if (!valid_placement(curship)) {
+      /* undo changes: */
+      write_to_log("Undoing changes because of bad placement...\n");
+      curship->x = origx;
+      curship->y = origy;
+      curship->direction = origdir;
+    }
+  } /* eo while(!done) */
 
 }
 
+bool valid_placement(Ship *ship)
+{
+  char msg[50];
+  write_to_log("ships ahoy! Checking ship placement...");
+  if (ship->x < 0 || ship->y < 0 || ship->x > BOARD_SIZE || ship->y > BOARD_SIZE) {
+    sprintf(msg, "Bad placement: x: %d, y: %d\n", ship->x, ship->y);
+    write_to_log(msg);
+    return false;
+  }
+  if (ship->direction) {	/* vertical */
+    if (ship->y + ship->size > BOARD_SIZE) return false;
+  } else {		/* horizontal */
+    if (ship->x + ship->size > BOARD_SIZE) return false;
+  }
+
+  /* TODO: check for overlapping ships! */
+
+  sprintf(msg, "Good placement: x: %d, y: %d\n", ship->x, ship->y);
+  write_to_log(msg);
+  return true;
+}
 
 /**
  * returns ship with passed in id
