@@ -14,74 +14,19 @@ extern  WINDOW *status_win;
 //all "slots" 0:
 #define HEALTHY {0,0,0,0,0}
 
-#define NUM_MAPS 6
-
-//defined the "maps"
-Mapping Mapset[NUM_MAPS][NUM_SHIPS] = {
-  {
-    3,1,1,
-    4,3,0,
-    2,7,0,
-    6,5,1,
-    0,2,1
-  },{
-    8,1,1,
-    4,2,0,
-    1,8,0,
-    1,1,1,
-    6,6,0
-  },{
-    5,4,1,
-    3,4,1,
-    0,4,1,
-    6,9,0,
-    0,9,0
-  },{
-    7,3,1,
-    0,7,0,
-    2,0,0,
-    1,2,0,
-    0,5,1
-  },{
-    1,9,0,
-    2,4,1,
-    4,7,0,
-    9,0,1,
-    3,1,0
-  },{
-    9,5,1,
-    1,5,1,
-    3,1,0,
-    7,0,1,
-    5,4,0
-  }
-};
-
 //the ships: (this is globaly visible)
 Ship Shipset[] = {
-  "Aircraft Carrier",5,0,0,0,0,HEALTHY,
-  "Battleship",4,0,0,0,0,HEALTHY,
-  "Cruiser",3,0,0,0,0,HEALTHY,
-  "Submarine",3,0,0,0,0,HEALTHY,
-  "Destroyer",2,0,0,0,0,HEALTHY
+  "Aircraft Carrier",5,0,0,-1,0,HEALTHY,
+  "Battleship",4,0,0,-1,0,HEALTHY,
+  "Cruiser",3,0,0,-1,0,HEALTHY,
+  "Submarine",3,0,0,-1,0,HEALTHY,
+  "Destroyer",2,0,0,-1,0,HEALTHY
 };
-
-/* Ship Shipset[] = { */
-/*     "Aircraft Carrier",5,0,3,1,1,{0,0,0,0,0}, */
-/*     "Battleship",4,0,4,3,0,{0,0,0,0,0}, */
-/*     "Cruiser",3,0,2,7,0,{0,0,0,0,0}, */
-/*     "Submarine",3,0,6,5,1,{0,0,0,0,0}, */
-/*     "Destroyer",2,0,0,2,1,{0,0,0,0,0} */
-/* }; */
-
-
 
 
 /**
  * This function creats a grid of ships from Shipset
  */
-
-
 void create_grid(char grid[BOARD_SIZE][BOARD_SIZE])
 {
   int x, y, dir, size, i,j;
@@ -96,14 +41,19 @@ void create_grid(char grid[BOARD_SIZE][BOARD_SIZE])
     y = Shipset[i].y;
     dir = Shipset[i].direction;
     size = Shipset[i].size;
-    //grid[x][y] = '*';
     if(dir) { /*vertical*/
       for (j=0;j<size; j++) {
-	grid[y+j][x]='*';
+	if (grid[y+j][x] != '_')
+	  grid[y+j][x]='x';
+	else
+	  grid[y+j][x]='*';
       }
     } else {
       for (j=0;j<size; j++) {
-	grid[y][x+j]='*';
+	if (grid[y][x+j] != '_')
+	  grid[y][x+j]='x';
+	else
+	  grid[y][x+j]='*';
       }
     } /* eo if(dir) */
   }   /* eo for each ship */
@@ -119,42 +69,6 @@ int randNum(const int high, const int low) {
   return ((rand() % (high - low +1)) + low);
 }
 
-void place_ship(){
-  int direction, x, y, i;
-  for (i=0;i<5;i++) {
-    direction = randNum(0,1);
-    x = randNum(0,BOARD_SIZE);
-    y = randNum(0,BOARD_SIZE);
-    Shipset[i].direction = direction;
-    Shipset[i].x = x;
-    Shipset[i].y = y;
-  }
-}
-
-/**
- * Helper function to create a ship by the name of name
- */
-Ship *create_ship(const char *name, const int size)
-{
-  Ship *new_ship;
-  if ( (new_ship = (Ship *) malloc(sizeof(Ship))) == NULL ) {/*malloc error*/
-    perror("malloc error");
-    exit(EXIT_FAILURE);
-  }
-  if ( (new_ship->name = (char *) malloc(strlen(name))) == NULL ) {
-    perror("malloc error");
-    exit(EXIT_FAILURE);
-  }
-  strcpy(new_ship->name, name); 
-  //Randomly place the ships
-  srand((unsigned)time(0));
-  int direction = randNum(0,1); //Random number between 0 and 1
-  int x = randNum(0,BOARD_SIZE); //x location of ship
-  int y = randNum(0,BOARD_SIZE); //y location 
-  new_ship->x = new_ship->y = new_ship->sunk = new_ship->direction = 0;
-  new_ship->size = size;
-  return new_ship;
-}
 
 /**
  * Helper function to create and return a board with ships initialized.
@@ -232,6 +146,10 @@ void initShips()
   bool done = false;
   int scratch=0;
   char msg[50];
+  char extramsg[50] = "";
+  char players_grid[BOARD_SIZE][BOARD_SIZE];
+
+  /* get rid of cursor: */
   curs_set(0);
 
   while (!done) {
@@ -241,26 +159,16 @@ void initShips()
     origy = curship->y;
     origdir = curship->direction;
 
-    /* for (i=0; i<NUM_SHIPS; i++) { */
-    /*   //place according to chosen map: */
-    /*   Shipset[i].x = Mapset[MAP][i].x; */
-    /*   Shipset[i].y = Mapset[MAP][i].y; */
-    /*   Shipset[i].direction = Mapset[MAP][i].direction; */
-
-    /*   //set as healthy: */
-    /*   Shipset[i].sunk = 0; */
-    /*   for (j=0; j<Shipset[i].size; j++) */
-    /* 	Shipset[i].slots[j] = 0; */
-    /* } */
-
     display_boards();
     mvprintw(0,1,"Use arrows to place ship, 'r' to rotate, space to select another ship.");
-    mvprintw(1,1,"Press enter to finish.");
+    mvprintw(1,1,"Press enter to finish. %s", extramsg);
     mvprintw(2,8, "Placing ship: \"%s\"", curship->name);
     echo();
     ch = getch();
     /* sprintf(msg, "got key: %d\n", ch); */
     /* write_to_log(msg); */
+
+    strcpy(extramsg, "");
     switch (ch) {
     case KEY_DOWN:
       curship->y++;
@@ -284,15 +192,30 @@ void initShips()
     case KEY_ENTER:
       write_to_log("maybe continuing...\n");
       done = true;
+      /* check to see that all ships have been place: */
       for (i=0; i<NUM_SHIPS; i++) {
 	if (!valid_placement(&(Shipset[i]))) {
-	  sprintf(msg, "Can't continue, \"%s\" is in a bad spot: %d,%d", Shipset[i].name, Shipset[i].x, Shipset[i].y);
-	  write_to_log(msg);
+	  sprintf(msg, "%s hasn't been placed yet", Shipset[i].name);
 	  done = false;
+	  break;
+	}
+      }
+      create_grid(players_grid);
+      /* check for overlaps */
+      for (i=0; i<BOARD_SIZE; ++i) {
+	for (j=0; j<BOARD_SIZE; ++j) {
+	  if (players_grid[i][j] != '*' && players_grid[i][j] != '_' ) {
+	    sprintf(msg, "Can't continue, there's an overlap at: %d,%d\n", i, j);
+	    write_to_log(msg);
+	    strcpy(msg, "There are overlapping pieces");
+	    done = false;
+	    break;
+	  }
 	}
       }
       if (!done) {
-	mvprintw(2,8,"Not all your ships are in valid locations");
+	sprintf(extramsg,"[Can't continue: %s]", msg);
+	write_to_log("Can't continue! Not all ships in valid locations.\n");
       }
       break;
     } /* eo switch */
@@ -311,7 +234,7 @@ bool valid_placement(Ship *ship)
 {
   char msg[50];
   write_to_log("ships ahoy! Checking ship placement...");
-  if (ship->x < 0 || ship->y < 0 || ship->x > BOARD_SIZE || ship->y > BOARD_SIZE) {
+  if (ship->x < 0 || ship->y < 0 || ship->x > BOARD_SIZE-1 || ship->y > BOARD_SIZE-1) {
     sprintf(msg, "Bad placement: x: %d, y: %d\n", ship->x, ship->y);
     write_to_log(msg);
     return false;
