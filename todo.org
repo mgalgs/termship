@@ -1,0 +1,6 @@
+* Start cursor where you last shot
+* Display boards when the game is over
+* Specify colors with characters, not just characters which determine color
+* "Shuffle" ships
+* "Play again" option
+* Retry connecting to server on fail
