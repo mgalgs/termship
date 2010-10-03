@@ -62,7 +62,7 @@ Player *create_player(const char *, const int);
 void setAsHit(const int, const int);
 Ship getShipById(const int);
 void printShips();
-void initShips();
+void initShips(const int);
 int randNum(const int, const int);
 
 /* checks the placement of a ship */

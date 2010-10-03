@@ -4,6 +4,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <ncurses.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -20,14 +21,18 @@
 #define MAX_NAME 100
 
 extern Ship Shipset[];
+extern Ship Their_Shipset[];
 extern WINDOW *opponent_win;
 extern char name[];
+extern bool their_shots[BOARD_SIZE][BOARD_SIZE];
+extern bool my_shots[BOARD_SIZE][BOARD_SIZE];
+extern int user_mode;
 
 char peer_user_name[50];
 
 void init_game(const int user_mode)
 {
-  int sock, accept_sock;
+  int sock, accept_sock, cnt;
   struct sockaddr_in addr;
   int cont = 1;
 
@@ -36,8 +41,7 @@ void init_game(const int user_mode)
 
   //open socket:
   if ( (sock = socket(PF_INET, SOCK_STREAM, 0)) == -1 ) {
-    perror("Error creating socket");
-    exit(EXIT_FAILURE);
+    graceful_exit("Error creating socket", -1);
   }
 
 
@@ -58,18 +62,26 @@ void init_game(const int user_mode)
 
     //set up addr with IP address:
     if ( inet_pton(AF_INET, ip, &addr.sin_addr) == 0 ) {
-      perror("That doesn't look like a valid IP address");
-      exit(EXIT_FAILURE);
+      graceful_exit("That doesn't look like a valid IP address", sock);
     }
     clear();
-    //connect
-    if ( (connect(sock, (struct sockaddr *) &addr, sizeof(addr))) == -1 ) {
-      perror("Error connecting to server");
-      exit(EXIT_FAILURE);
-    } else {
-      exchange_names(sock,1);
-      printw("Connected to server!\nYou will be battling against %s\n\nPress any key to continue...", peer_user_name);
+    for (cnt=0; cnt<MAX_RETRIES; cnt++) {
+      //connect
+      if ( (connect(sock, (struct sockaddr *) &addr, sizeof(addr))) == -1 ) {
+	mvprintw(1,2,"Connecting to server... %s", cnt%2==0 ? "|" : "-");
+	refresh();
+	sleep(1);
+      } else {
+	exchange_names(sock,1);
+	mvprintw(2,2,"Connected to server!");
+	mvprintw(3,2,"You will be battling against %s\n\nPress any key to continue...", peer_user_name);
+	break;
+      }
     }
+    if (cnt == MAX_RETRIES) {
+      graceful_exit("Error connecting to server", sock);
+    }
+
     refresh();
     getch();
     do_gameplay(sock, 0);
@@ -77,14 +89,12 @@ void init_game(const int user_mode)
     int i = 0;
     //bind
     if ( bind(sock, (struct sockaddr *) &addr, sizeof(addr)) == -1) {/*bind error*/
-      perror("bind error");
-      exit(EXIT_FAILURE);
+      graceful_exit("bind error", sock);
     }
 
     //listen
     if ( listen(sock, 100) == -1 ) {/*listen error*/
-      perror("listen error");
-      exit(EXIT_FAILURE);
+      graceful_exit("listen error", sock);
     }
 
     while(cont) {
@@ -113,8 +123,7 @@ int do_fire(const int sock, const int x, const int y)
   int nbytes;
   buf = CreateBMesg(BFIRE, x, y);
   if ( nbytes = send(sock, buf, sizeof(BMesg), 0) == -1) { /*send error*/
-    perror("send error");
-    exit(EXIT_FAILURE);
+    graceful_exit("send error", sock);
   }
   //we successfully sent
   //printw("Sent data...\n");
@@ -152,8 +161,7 @@ int do_receive(const int sock)
   char *scratch;
   buf = CreateEmptyBMesg();
   if ( (nbytes = recv(sock, buf, MAX_MSG, 0) == -1) ) { /*recv error*/
-    perror("recv error");
-    exit(EXIT_FAILURE);
+    graceful_exit("recv error", sock);
   }
   //we successfully returned from recv
   //printw("Received %d bytes of data...Such as %s\n", nbytes, buf->code);
@@ -173,8 +181,7 @@ int do_receive(const int sock)
 	return res;
       }
       else {
-	perror("Unexpected case in do_receive");
-	exit(EXIT_FAILURE);
+	graceful_exit("Unexpected case in do_receive", sock);
       }
     }
   } else {
@@ -183,8 +190,7 @@ int do_receive(const int sock)
   }
   //At this point we should have sent exactly 1 response to the other user *and returned*
   //WE SHOULD NEVER GET HERE
-  perror("Reached unexpected worlds....");
-  exit(EXIT_FAILURE);
+  graceful_exit("Reached unexpected worlds....", sock);
   return -1; //just to make the compiler happy
 }
 
@@ -194,12 +200,12 @@ int do_receive(const int sock)
  */
 int check_hit(const BMesg *buf)
 {
-  char *scratch, dest[MAX_CODE];
+  char *scratch, dest[MAX_CODE], msg[50];
   int x,y,lenx,leny,i,j;
   refresh();
   if ( (scratch = index(buf->code, ',')) == NULL) { /*comma not found*/
-    perror("Invalid BFIRE message detected in check_hit");
-    exit(EXIT_FAILURE);
+    sprintf(msg, "Invalid BFIRE message detected in check_hit: %s", buf->code);
+    graceful_exit(msg, -1);
   } else { /*this is an "x,y" code*/
     lenx = scratch - buf->code;
     leny = (strlen(buf->code)-1) - lenx; //strlen - 1 for null terminator
@@ -209,6 +215,7 @@ int check_hit(const BMesg *buf)
     y = atoi(dest);
     refresh();
   }
+  their_shots[x][y] = true;
   //check for a hit:
   for (i=0; i<NUM_SHIPS; i++) { //for each ship
     if (Shipset[i].sunk) //it's sunk
@@ -236,7 +243,7 @@ int check_hit(const BMesg *buf)
     }
   }
 
-  place_hit_or_mis(opponent_win,0,x,y);
+  /* place_hit_or_mis(opponent_win,0,x,y); */
 
   //if we haven't returned until now then there was no hit
   return 0;
@@ -261,6 +268,7 @@ int check_game_over()
 }
 
 
+
 /**
  * Sends a HIT message along with a HIT_CODE.
  * Pass NULL in as code if there isn't a code.
@@ -274,8 +282,7 @@ void send_hit(const int sock, const char *code)
   if (code)
     strcpy(buf->code, code);
   if ( nbytes = send(sock, buf, sizeof(BMesg), 0) == -1) { /*send error*/
-    perror("send error");
-    exit(EXIT_FAILURE);
+    graceful_exit("send error", sock);
   }
 }
 
@@ -289,8 +296,7 @@ void send_miss(const int sock)
   buf = CreateEmptyBMesg();
   buf->msg=BMISS;
   if ( nbytes = send(sock, buf, sizeof(BMesg), 0) == -1) { /*send error*/
-    perror("send error");
-    exit(EXIT_FAILURE);
+    graceful_exit("send error", sock);
   }
 }
 
@@ -301,11 +307,59 @@ void get_response(const int sock, BMesg *buf)
 {
   int nbytes;
   if ( (nbytes = recv(sock, buf, MAX_MSG, 0) == -1) ) { /*recv error*/
-    perror("recv error");
-    exit(EXIT_FAILURE);
+    graceful_exit("recv error", sock);
   }
 }
 
+void exchange_maps(const int sock)
+{
+  if (user_mode == CLIENT_MODE) {
+    get_their_map(sock);
+    send_my_map(sock);
+  } else {
+    send_my_map(sock);
+    get_their_map(sock);
+  }
+}
+
+void get_their_map(const int sock)
+{
+  int nbytes,i;
+  char msg[50];
+  /* 3 bytes for each ship: x,y,direction (we assume they send them in
+     order defined in gamepieces.c) */
+  char map_buffer[3*NUM_SHIPS];
+  write_to_log("Getting their map...\n");
+  if ( (nbytes = recv(sock, map_buffer, sizeof(map_buffer), MSG_WAITALL)) == -1 )
+    graceful_exit("Error getting their map...", sock);
+
+  write_to_log("Got their map!\n");
+  /* fill up their map: */
+  for (i=0; i<NUM_SHIPS; ++i) {
+    Their_Shipset[i].x = map_buffer[i*3];
+    Their_Shipset[i].y = map_buffer[i*3+1];
+    Their_Shipset[i].direction = map_buffer[i*3+2];
+    sprintf(msg, "ship #%d: (x,y,dir)=(%d,%d,%d)\n", i, Their_Shipset[i].x, Their_Shipset[i].y, Their_Shipset[i].direction);
+    write_to_log(msg);
+  }
+}
+
+void send_my_map(const int sock)
+{
+  int nbytes, i;
+  char map_buffer[3*NUM_SHIPS];
+
+  /* fill up the buffer with our map: */
+  for (i=0; i<NUM_SHIPS; ++i) {
+    map_buffer[i*3] = (char)Shipset[i].x;
+    map_buffer[i*3+1] = (char)Shipset[i].y;
+    map_buffer[i*3+2] = (char)Shipset[i].direction;
+  }
+
+  /* send our map */
+  if ( -1 == (nbytes = send(sock, map_buffer, sizeof(map_buffer), 0)) )
+    graceful_exit("error while sending the map...", sock);
+}
 
 /**
  * Get the other user's name.
@@ -313,7 +367,6 @@ void get_response(const int sock, BMesg *buf)
  */
 void exchange_names(const int sock, const int mode)
 {
-  int nbytes;
   if (mode) {
     get_user_name(sock);
     send_user_name(sock);
@@ -323,13 +376,13 @@ void exchange_names(const int sock, const int mode)
   }
 }
 
+
 //gets user name
 void get_user_name(const int sock)
 {
   int nbytes;
   if ( (nbytes = recv(sock, peer_user_name, MAX_USER_NAME, 0)) == -1) {
-    perror("Error getting other user's name...");
-    exit(EXIT_FAILURE);
+    graceful_exit("Error getting other user's name...", sock);
   }
 }
 
@@ -338,7 +391,6 @@ void send_user_name(const int sock)
 {
   int nbytes;
   if ( (nbytes = send(sock, name, strlen(name)+1/*for '\0'*/, 0)) == -1) { /*send error*/
-    perror("send error");
-    exit(EXIT_FAILURE);
+    graceful_exit("send error", sock);
   }
 }

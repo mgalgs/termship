@@ -3,3 +3,4 @@ termship
 *.out
 *.files
 tlog.txt
+core

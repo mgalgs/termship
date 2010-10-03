@@ -1,6 +1,13 @@
-* Start cursor where you last shot
-* Display boards when the game is over
-* Specify colors with characters, not just characters which determine color
-* "Shuffle" ships
-* "Play again" option
-* Retry connecting to server on fail
+* DONE Start cursor where you last shot
+* TODO Display boards when the game is over
+** TODO Exchange full boards at beginning of game
+** TODO Mark hits inside of display_board, just keep track of where we've tried and where they've tried
+* TODO Specify colors with characters, not just characters which determine color
+* TODO "Shuffle" ships
+* TODO "Play again" option
+* DONE Retry connecting to server on fail
+* TODO Infinitely long name (or validate when it's too long)
+* TODO Autodiscover running server
+* TODO Running status window
+* TODO Use symbol rather than cursor for crosshair
+

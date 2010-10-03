@@ -2,7 +2,7 @@
 
 CC=gcc
 CFLAGS=-g
-OBJS=termship.o connection.o screen.o gamepieces.o Btypes.o log.o
+OBJS=termship.o connection.o screen.o gamepieces.o Btypes.o log.o error.o
 # CFLAGS += -DTEST_SHIPS
 
 ### Implicit Rules ###

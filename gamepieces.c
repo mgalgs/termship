@@ -23,6 +23,15 @@ Ship Shipset[] = {
   "Destroyer",2,0,0,-1,0,HEALTHY
 };
 
+//the ships: (this is globaly visible)
+Ship Their_Shipset[] = {
+  "Aircraft Carrier",5,0,0,-1,0,HEALTHY,
+  "Battleship",4,0,0,-1,0,HEALTHY,
+  "Cruiser",3,0,0,-1,0,HEALTHY,
+  "Submarine",3,0,0,-1,0,HEALTHY,
+  "Destroyer",2,0,0,-1,0,HEALTHY
+};
+
 
 /**
  * This function creats a grid of ships from Shipset
@@ -77,13 +86,11 @@ Board *create_board()
 {
   Board *new_board;
   if ( (new_board = (Board *) malloc(sizeof(Board))) == NULL ) {/*malloc error*/
-    perror("malloc error");
-    exit(EXIT_FAILURE);
+    graceful_exit("malloc error", -1);
   }
   new_board->unsunk_cnt = 5;
   if ( (new_board->ships = (Ship *) malloc(sizeof(Shipset))) == NULL ) {
-    perror("malloc error");
-    exit(EXIT_FAILURE);
+    graceful_exit("malloc error", -1);
   }
   new_board->ships = Shipset;
 }
@@ -95,8 +102,7 @@ Player *create_player(const char *name, const int user_mode)
 {
   Player *new_player;
   if ( (new_player = (Player *) malloc(sizeof(Player))) == NULL ) { /*malloc error*/
-    perror("malloc error");
-    exit(EXIT_FAILURE);
+    graceful_exit("malloc error", -1);
   }
   new_player->board = create_board();
   new_player->name = "John";
@@ -120,7 +126,7 @@ void setAsHit(int ship, int slot)
   else x += slot;
  
   Shipset[ship].slots[slot] = 1; //set slot as hit
-  place_hit_or_mis(opponent_win, -1, x, y); 
+  /* place_hit_or_mis(opponent_win, -1, x, y);  */
   //set as sunk if relevant
   for (i=0; i<Shipset[ship].size; i++) {
     if (Shipset[ship].slots[i] == 0) {/*not hit*/
@@ -134,7 +140,7 @@ void setAsHit(int ship, int slot)
 /**
  * Sets all ships to being healthy and place them on a random map.
  */
-void initShips()
+void initShips(const int sock)
 {
   int i,j;
 
@@ -159,7 +165,7 @@ void initShips()
     origy = curship->y;
     origdir = curship->direction;
 
-    display_boards();
+    display_boards(false);
     mvprintw(0,1,"Use arrows to place ship, 'r' to rotate, space to select another ship.");
     mvprintw(1,1,"Press enter to finish. %s", extramsg);
     mvprintw(2,8, "Placing ship: \"%s\"", curship->name);
@@ -228,14 +234,17 @@ void initShips()
     }
   } /* eo while(!done) */
 
+  mvprintw(2,8, "Waiting for the other play to get ready...");
+  refresh();
+  exchange_maps(sock);
 }
 
 bool valid_placement(Ship *ship)
 {
   char msg[50];
-  write_to_log("ships ahoy! Checking ship placement...");
+  /* write_to_log("ships ahoy! Checking ship placement..."); */
   if (ship->x < 0 || ship->y < 0 || ship->x > BOARD_SIZE-1 || ship->y > BOARD_SIZE-1) {
-    sprintf(msg, "Bad placement: x: %d, y: %d\n", ship->x, ship->y);
+    /* sprintf(msg, "Bad placement: x: %d, y: %d\n", ship->x, ship->y); */
     write_to_log(msg);
     return false;
   }
@@ -245,10 +254,8 @@ bool valid_placement(Ship *ship)
     if (ship->x + ship->size > BOARD_SIZE) return false;
   }
 
-  /* TODO: check for overlapping ships! */
-
-  sprintf(msg, "Good placement: x: %d, y: %d\n", ship->x, ship->y);
-  write_to_log(msg);
+  /* sprintf(msg, "Good placement: x: %d, y: %d\n", ship->x, ship->y); */
+  /* write_to_log(msg); */
   return true;
 }
 

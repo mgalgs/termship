@@ -30,8 +30,7 @@ BMesg *CreateBMesg(int MESS, int x, int y)
   newBMesg = CreateEmptyBMesg();
   //do some validation:
   if (!validMesg(MESS)) {
-    perror("Invalide message passed to CreateBMesg");
-    exit(EXIT_FAILURE);
+    graceful_exit("Invalid message passed to CreateBMesg", -1);
   }
   newBMesg->msg = MESS; //should be one of BFIRE, BHIT, BMISS (defined in Btypes.h)
   sprintf(newBMesg->code, "%d,%d\0", x, y);
@@ -46,8 +45,7 @@ BMesg *CreateEmptyBMesg()
   BMesg *newBMesg;
   int i;
   if ((newBMesg = (BMesg *) malloc(sizeof(BMesg))) == NULL) { /*malloc error*/
-    perror("malloc error");
-    exit(EXIT_FAILURE);
+    graceful_exit("malloc error", -1);
   }
   //initialize the code:
   for (i=0; i<MAX_CODE; i++)
