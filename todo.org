@@ -9,5 +9,5 @@
 * TODO Infinitely long name (or validate when it's too long)
 * TODO Autodiscover running server
 * TODO Running status window
-* TODO Use symbol rather than cursor for crosshair
-
+* TODO Use symbol rather than cursor for crosshair (emulate cursor with background colors)
+* TODO ignore weird getch's at the beginning of for;; in return_cords

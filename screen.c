@@ -72,7 +72,10 @@ void main_menu()
 
 void return_cords(int * x, int * y) {
   int ch;
-  while((ch = getch())) {
+  char msg[50];
+  write_to_log("about to enter forever loop...\n");
+  for(;;) {
+    ch = getch();
     switch(ch) {
     case KEY_LEFT:
       if (the_player_pos.x > 0)
@@ -95,8 +98,13 @@ void return_cords(int * x, int * y) {
       *x = the_player_pos.x;
       *y = the_player_pos.y;
       return;
+    default:
+      sprintf(msg, "got %d from getch...weird...\n", (int)ch);
+      write_to_log(msg);
+      break;
     } /* eo switch */
     display_boards(true);
+    write_to_log("looping around forever getch loop...\n");
   }
 }
 
@@ -198,27 +206,35 @@ void display_boards(bool draw_crosshair)
     }
   }
 
-  for (i=0; i<BOARD_SIZE; ++i) {
-    for (j=0; j<BOARD_SIZE; ++j) {
-      if (my_shots[i][j]) {
-	sprintf(msg, "my shots at: (%d,%d)\n", i, j);
-	write_to_log(msg);
-      }
-    }
-  }
-  for (i=0; i<BOARD_SIZE; ++i) {
-    for (j=0; j<BOARD_SIZE; ++j) {
-      if (their_shots[i][j]) {
-	sprintf(msg, "their shots at: (%d,%d)\n", i, j);
-	write_to_log(msg);
-      }
-    }
-  }
+  /* for (i=0; i<BOARD_SIZE; ++i) { */
+  /*   for (j=0; j<BOARD_SIZE; ++j) { */
+  /*     if (my_shots[i][j]) { */
+  /* 	sprintf(msg, "my shots at: (%d,%d)\n", i, j); */
+  /* 	write_to_log(msg); */
+  /*     } */
+  /*   } */
+  /* } */
+  /* for (i=0; i<BOARD_SIZE; ++i) { */
+  /*   for (j=0; j<BOARD_SIZE; ++j) { */
+  /*     if (their_shots[i][j]) { */
+  /* 	sprintf(msg, "their shots at: (%d,%d)\n", i, j); */
+  /* 	write_to_log(msg); */
+  /*     } */
+  /*   } */
+  /* } */
 
 
   /* draw the crosshair: */
-  if (draw_crosshair)
+  if (draw_crosshair) {
     mvwprintw(player_win, yoffset + the_player_pos.y, xoffset + (the_player_pos.x*2), "%c", CROSSHAIR);
+    /* curs_set(1); // Set cursor visible */
+    /* sprintf(msg, "moving cursors to %d,%d in player_win\n", yoffset + the_player_pos.y, xoffset + (the_player_pos.x*2)); */
+    /* write_to_log(msg); */
+    /* wmove(player_win, yoffset + the_player_pos.y, xoffset + (the_player_pos.x*2)); */
+    /* wrefresh(player_win); */
+  } else {
+    curs_set(0); // Set cursor invisible
+  }
 
   /* now look at our set of ships, if they have a shot on a ship, mark it as hit */
   for (i=0; i<NUM_SHIPS; i++) {
@@ -320,7 +336,7 @@ void do_gameplay(const int sock, int fire)
 
     } else { /*you're the defender*/
       keypad(stdscr, FALSE);
-      curs_set(0); // Set cursor invisible
+      /* curs_set(0); // Set cursor invisible */
       mvwprintw(status_win,1,1,"Waiting for other player to fire...");
       wrefresh(status_win);
       res = do_receive(sock);
