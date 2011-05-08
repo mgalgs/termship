@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ncurses.h>
+#include <time.h>
 #include "gamepieces.h"
 #include "screen.h"
 #include "Btypes.h"

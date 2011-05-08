@@ -4,9 +4,14 @@
 
 
 #include <ncurses.h>
+#include <menu.h>
+#include <panel.h>
+#include <string.h>
+#include <stdlib.h>
 #include "gamepieces.h"
 #include "connection.h"
 #include "screen.h"
+#include "log.h"
 
 #define MAX_NAME 100
 
@@ -55,13 +60,82 @@ void main_menu()
 {
   int user_mode;
   Player *player;
+  WINDOW *panel_win;
+  PANEL *the_panel;
+  int panel_height=6,panel_width=50;
+  char msg[200];
+
+  MENU *my_menu;
+  char *my_choices[] = {
+    "Create","(Create new termship game)",
+    "Join", "(Join existing termship game on network)",
+    "Exit", "",
+    (char *)NULL, (char *)NULL
+  };
+  ITEM **my_items;
+  int n_choices = ARRAY_SIZE(my_choices)/2;
+
   /* some testing modes: */
 #ifdef TEST_SHIPS
   initShips();
   return;
 #endif
 
+  keypad(stdscr, TRUE);
+  curs_set(0); // make cursor invisible
+  noecho();
   title_screen();
+
+  /* create the panel: */
+  panel_win = newwin(panel_height,
+                     panel_width,
+                     (LINES-panel_height)/2,
+                     (COLS-panel_width)/2);
+  box(panel_win, 0, 0);
+  print_in_middle(panel_win, 2, 0, panel_width,
+                  "Welcome to termship!", COLOR_PAIR(2));
+  print_in_middle(panel_win, 3, 0, panel_width,
+                  "(Press any key)", COLOR_PAIR(2));
+  refresh();
+  the_panel = new_panel(panel_win);
+  top_panel(the_panel);
+  update_panels();
+  doupdate();
+  getch();
+
+  hide_panel(the_panel);
+  update_panels();
+  doupdate();
+
+  clear();
+
+  my_items = (ITEM **)calloc(n_choices,sizeof(ITEM *));
+  for (int i=0; my_choices[i*2]!=NULL; ++i) {
+    /* i*2 since we're iterating in pairs */
+    my_items[i] = new_item(my_choices[(i*2)], my_choices[(i*2)+1]);
+  }
+
+  my_menu = new_menu(my_items);
+  post_menu(my_menu);
+  refresh();
+
+  int c;
+  while ((c = getch()) != 10) {
+    switch (c) {
+    case KEY_DOWN:
+      menu_driver(my_menu, REQ_DOWN_ITEM);
+      break;
+    case KEY_UP:
+      menu_driver(my_menu, REQ_UP_ITEM);
+      break;
+    }
+  }
+  for (int i=0; i<n_choices-1; ++i) {
+    free_item(my_items[i]);
+  }
+  free_menu(my_menu);
+
+  
   printw("Enter your name: ");
   getstr(name);
   printw("\nEnter 0 for server mode, 1 for client mode: ");
@@ -74,8 +148,6 @@ void main_menu()
 }
 
 void return_cords(int * x, int * y) {
-
-
   struct player_pos_ player_pos;
   int startx, starty,height, width;
   
@@ -97,53 +169,53 @@ void return_cords(int * x, int * y) {
   while((ch = getch())) 
     {      
       switch(ch) 
-	{       case KEY_LEFT:
-	    if (playerx > 3+startx+20) {
-	      playerx -=2;
-	      player_pos.x--;
-	      move(playery, playerx);
-	      break;
-	    }
-	    break;
-	case KEY_RIGHT:
-	  if (playerx < -3+startx+20+width) {
-	    playerx +=2;
-	    player_pos.x++;
-	    move(playery, playerx);
-	    break; 
-	  }
-	  break;
-	case KEY_UP:
-	  if (playery > 2+starty) {
-	    --playery;
-	    --player_pos.y;
-	    move(playery, playerx);
-	    break;
-	  }
-	  break;
-	case KEY_DOWN:
-	  if (playery < starty+height-2) {
-	    ++playery;
-	    ++player_pos.y;
-	    move(playery, playerx);
-	    break;  
-	  }
-	  break;
-	case 10:
-	  *x = player_pos.x;
-	  *y = player_pos.y;
-	  return;
-	  break;
-	  break;  
-			  
-	case KEY_ENTER:
-	  *x = player_pos.x;
-	  *y = player_pos.y;
-	  return;
-	  break;
-	  break;
-		
-	}
+        {       case KEY_LEFT:
+            if (playerx > 3+startx+20) {
+              playerx -=2;
+              player_pos.x--;
+              move(playery, playerx);
+              break;
+            }
+            break;
+        case KEY_RIGHT:
+          if (playerx < -3+startx+20+width) {
+            playerx +=2;
+            player_pos.x++;
+            move(playery, playerx);
+            break; 
+          }
+          break;
+        case KEY_UP:
+          if (playery > 2+starty) {
+            --playery;
+            --player_pos.y;
+            move(playery, playerx);
+            break;
+          }
+          break;
+        case KEY_DOWN:
+          if (playery < starty+height-2) {
+            ++playery;
+            ++player_pos.y;
+            move(playery, playerx);
+            break;  
+          }
+          break;
+        case 10:
+          *x = player_pos.x;
+          *y = player_pos.y;
+          return;
+          break;
+          break;  
+                          
+        case KEY_ENTER:
+          *x = player_pos.x;
+          *y = player_pos.y;
+          return;
+          break;
+          break;
+                
+        }
     } 
 }
 
@@ -202,9 +274,9 @@ void display_boards(void)
     for (f =0; f<BOARD_SIZE; f++) {
       t = players_grid[h][f];
       if (t == '*') {
-	wattron(opponent_win,COLOR_PAIR(2));
-	mvwprintw(opponent_win, 2+h,3+f*2, "%c", t);
-	wattroff(opponent_win,COLOR_PAIR(2));
+        wattron(opponent_win,COLOR_PAIR(2));
+        mvwprintw(opponent_win, 2+h,3+f*2, "%c", t);
+        wattroff(opponent_win,COLOR_PAIR(2));
       }
       else {mvwprintw(opponent_win, 2+h,3+f*2, "%c", t);}
       mvwprintw(opponent_win, 2+h,4+f*2, "|");
@@ -250,23 +322,23 @@ void do_gameplay(const int sock, int fire)
       place_hit_or_mis(player_win,res, x, y);
       switch (res) {
       case 0:
-	mvwprintw(status_win,2,1,"Missed!                                    ");
-	wrefresh(status_win);
-	break;
+        mvwprintw(status_win,2,1,"Missed!                                    ");
+        wrefresh(status_win);
+        break;
       case 1:
-	mvwprintw(status_win,2,1,"You hit them!                              ");
-	wrefresh(status_win);
-	break;
+        mvwprintw(status_win,2,1,"You hit them!                              ");
+        wrefresh(status_win);
+        break;
       case -1:
-	mvwprintw(status_win,2,1,"You sunk them!                             ");
-	wrefresh(status_win);
-	break;
+        mvwprintw(status_win,2,1,"You sunk them!                             ");
+        wrefresh(status_win);
+        break;
       case -2:
-	win_status = 1;
-	mvwprintw(status_win,2,1,"Game over!                        ");
-	wrefresh(status_win);
-	fire = -1;
-	break;
+        win_status = 1;
+        mvwprintw(status_win,2,1,"Game over!                        ");
+        wrefresh(status_win);
+        fire = -1;
+        break;
       }
 
     } else { /*you're the defender*/
@@ -277,23 +349,23 @@ void do_gameplay(const int sock, int fire)
       res = do_receive(sock);
       refresh();
       if (res == 0) {
-	//wclear(status_win);
-	mvwprintw(status_win,2,1,"They missed!                                ");
-	//mvwprintw(status_win,5,1,"It's your turn!");
-	wrefresh(status_win);
+        //wclear(status_win);
+        mvwprintw(status_win,2,1,"They missed!                                ");
+        //mvwprintw(status_win,5,1,"It's your turn!");
+        wrefresh(status_win);
       } else if (res < 0) { //negative res indicates sunken ship
-	sh = getShipById(-1*res);
-	//wclear(status_win);
-	mvwprintw(status_win,2,1,"They sunk your %s!               ", sh.name);
-	//mvwprintw(status_win,5,1,"It's your turn!");
-	wrefresh(status_win);
+        sh = getShipById(-1*res);
+        //wclear(status_win);
+        mvwprintw(status_win,2,1,"They sunk your %s!               ", sh.name);
+        //mvwprintw(status_win,5,1,"It's your turn!");
+        wrefresh(status_win);
       } else if (res==100);//do nothing...the game is over
       else {
-	sh = getShipById(res);
-	//wclear(status_win);
-	mvwprintw(status_win,2,1,"They hit your %s!                ", sh.name);
-	//mvwprintw(status_win,5,1,"It's your turn!");
-	wrefresh(status_win);
+        sh = getShipById(res);
+        //wclear(status_win);
+        mvwprintw(status_win,2,1,"They hit your %s!                ", sh.name);
+        //mvwprintw(status_win,5,1,"It's your turn!");
+        wrefresh(status_win);
       }
       mvwprintw(status_win,1,1,"It's your turn!                               ");
       fire = (check_game_over() == 1) ? -1 : 1;
@@ -310,18 +382,68 @@ void do_gameplay(const int sock, int fire)
 
 void title_screen()
 {
-  printw(\
-	 "                                     # #  ( )\n" \
-	 "                                  ___#_#___|__\n" \
-	 "                              _  |____________|  _\n" \
-	 "                       _=====| | |            | | |==== _\n" \
-	 "                 =====| |.---------------------------. | |====\n" \
-	 "   <--------------------'   .  .  .  .  .  .  .  .   '--------------/\n" \
-	 "     \\                                                             /\n" \
-	 "      \\_______________________________________________WWS_________/\n" \
-	 "  wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\n" \
-	 "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\n" \
-	 "   wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww \n");
-  printw("\n\nPress any key to continue...\n");
-  getch();
+  char *picture[] = {
+    "                                     # #  ( )",
+    "                                  ___#_#___|__",
+    "                              _  |____________|  _",
+    "                       _=====| | |            | | |==== _",
+    "                 =====| |.---------------------------. | |====",
+    "   <--------------------'   .  .  .  .  .  .  .  .   '--------------/",
+    "     \\                                                             /",
+    "      \\_______________________________________________WWS_________/",
+    "  wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+    "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+    "   wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+    NULL
+  };
+
+  /* get width of picture */
+  int picwidth = get_picture_width(picture);
+  int leftoffset = (COLS - picwidth)/2;
+  int topoffset = 2;
+  for (int i=0; i<ARRAY_SIZE(picture); ++i) {
+    mvprintw(topoffset+i, leftoffset, picture[i]);
+  }
+}
+
+
+
+/*** Some utility functions ***/
+
+/* from http://www.linuxdoc.org/HOWTO/NCURSES-Programming-HOWTO/panels.html */
+void print_in_middle(WINDOW *win, int starty,
+                     int startx, int width,
+                     char *string, chtype color)
+{       int length, x, y;
+        float temp;
+
+        if(win == NULL)
+                win = stdscr;
+        getyx(win, y, x);
+        if(startx != 0)
+                x = startx;
+        if(starty != 0)
+                y = starty;
+        if(width == 0)
+                width = 80;
+
+        length = strlen(string);
+        temp = (width - length)/ 2;
+        x = startx + (int)temp;
+        wattron(win, color);
+        mvwprintw(win, y, x, "%s", string);
+        wattroff(win, color);
+        refresh();
+}
+
+
+int get_picture_width(char *picture[])
+{
+  int maxlen=0;
+  char msg[50];
+  for (int i=0; picture[i]!=NULL; ++i) {
+    int len = strlen(picture[i]);
+    maxlen = len > maxlen ? len : maxlen;
+  }
+  return maxlen;
 }

@@ -1,7 +1,7 @@
 #termship
 
 CC=gcc
-CFLAGS=-g
+CFLAGS=-g -std=c99
 OBJS=termship.o connection.o screen.o gamepieces.o Btypes.o log.o
 # CFLAGS += -DTEST_SHIPS
 
@@ -16,7 +16,7 @@ OBJS=termship.o connection.o screen.o gamepieces.o Btypes.o log.o
 all: termship
 
 termship: $(OBJS) Btypes.h
-	$(CC) $(CFLAGS) -o termship $(OBJS) -lncurses
+	$(CC) $(CFLAGS) -o termship $(OBJS) -lpanel -lmenu -lncurses
 
 clean:
 	rm -f *.o

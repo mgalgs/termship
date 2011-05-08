@@ -13,7 +13,8 @@ void place_hit_or_mis(WINDOW * win,int mesg, int x, int y);
 /**
  * Displays the current battlefield to the user.
  */
-void show_board();
+void display_boards(void);
+
 
 /**
  * Shows the main menu
@@ -25,5 +26,15 @@ void main_menu();
  */
 void do_gameplay(const int, int);
 void title_screen();
+
+/**
+ * Utility functions and macros
+ */
+void print_in_middle(WINDOW *, int, int, int, char *, chtype);
+/* Picture _must_ be NULL terminated */
+int get_picture_width(char *[]);
+
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+
 
 #endif

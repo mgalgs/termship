@@ -3,6 +3,7 @@
  */
 
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 #include <ncurses.h>
 #include <sys/types.h>

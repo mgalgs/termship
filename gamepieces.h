@@ -56,6 +56,8 @@ typedef struct Player_
  */
 Player *create_player(const char *, const int);
 
+void create_grid(char grid[BOARD_SIZE][BOARD_SIZE]);
+
 /**
  * Sets a slot on a ship as hit
  */
