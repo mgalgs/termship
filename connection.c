@@ -22,7 +22,7 @@
 
 extern Ship Shipset[];
 extern WINDOW *opponent_win;
-extern char name[];
+extern char global_user_name[];
 
 char peer_user_name[50];
 
@@ -338,7 +338,7 @@ void get_user_name(const int sock)
 void send_user_name(const int sock)
 {
   int nbytes;
-  if ( (nbytes = send(sock, name, strlen(name)+1/*for '\0'*/, 0)) == -1) { /*send error*/
+  if ( (nbytes = send(sock, global_user_name, strlen(global_user_name)+1/*for '\0'*/, 0)) == -1) { /*send error*/
     perror("send error");
     exit(EXIT_FAILURE);
   }

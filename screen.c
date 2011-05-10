@@ -12,11 +12,12 @@
 #include "connection.h"
 #include "screen.h"
 #include "log.h"
+#include "common.h"
 
 #define MAX_NAME 100
 
 extern Ship Shipset[];
-char name[MAX_NAME];
+char global_user_name[MAX_NAME];
 
 WINDOW *player_win;
 WINDOW *opponent_win;
@@ -31,15 +32,12 @@ void place_hit_or_mis(WINDOW * win,int mesg, int x, int y) {
     mvwprintw(win, y+2, x*2+3,"#");
     wattroff(win,COLOR_PAIR(4));
     wrefresh(win);
-  }
-
-  else { // miss
+  } else { // miss
     wattron(win,COLOR_PAIR(3));
     mvwprintw(win, y+2, x*2+3,"@");
     wattroff(win,COLOR_PAIR(3));
     wrefresh(win);
   }
-
 }
 
 /**
@@ -65,7 +63,11 @@ void main_menu()
   int panel_height=6,panel_width=50;
   char msg[200];
 
+
   MENU *my_menu;
+  /* Order here doesn't matter. Name (the first item in each of these
+     "pairs") does. If you change the name, change the selection
+     handling code towards the end of this function. */
   char *my_choices[] = {
     "Create","(Create new termship game)",
     "Join", "(Join existing termship game on network)",
@@ -93,9 +95,10 @@ void main_menu()
                      (COLS-panel_width)/2);
   box(panel_win, 0, 0);
   print_in_middle(panel_win, 2, 0, panel_width,
-                  "Welcome to termship!", COLOR_PAIR(2));
+                  "Welcome to termship!", COLOR_PAIR(7));
   print_in_middle(panel_win, 3, 0, panel_width,
-                  "(Press any key)", COLOR_PAIR(2));
+                  "(Press any key)", COLOR_PAIR(7));
+  /* mvwprintw(panel_win, 1, 1, "Test me"); */
   refresh();
   the_panel = new_panel(panel_win);
   top_panel(the_panel);
@@ -103,8 +106,9 @@ void main_menu()
   doupdate();
   getch();
 
-  hide_panel(the_panel);
+  del_panel(the_panel);
   update_panels();
+  delwin(panel_win);
   doupdate();
 
   clear();
@@ -116,6 +120,7 @@ void main_menu()
   }
 
   my_menu = new_menu(my_items);
+  set_menu_mark(my_menu, "   * ");
   post_menu(my_menu);
   refresh();
 
@@ -130,21 +135,29 @@ void main_menu()
       break;
     }
   }
+  ITEM *cur = current_item(my_menu);
+  const char *selected_name = item_name(cur);
+  
+  /* delete the menu, free resources */
   for (int i=0; i<n_choices-1; ++i) {
     free_item(my_items[i]);
   }
+  unpost_menu(my_menu);
   free_menu(my_menu);
 
-  
-  printw("Enter your name: ");
-  getstr(name);
-  printw("\nEnter 0 for server mode, 1 for client mode: ");
-  scanw("%d", &user_mode);
-  player = create_player(name, user_mode);
+  if (0==strcmp(selected_name, "Create")) {
+    user_mode = SERVER_MODE;
+    strncpy(global_user_name, get_text_string_from_centered_panel("Enter your name"), MAX_NAME);
+    player = create_player(global_user_name, user_mode);
+    init_game(user_mode);
+  } else if (0==strcmp(selected_name, "Join")) {
+    user_mode = CLIENT_MODE;
+    strncpy(global_user_name, get_text_string_from_centered_panel("Enter your name"), MAX_NAME);
+    player = create_player(global_user_name, user_mode);
+    init_game(user_mode);
+  }
 
-  printw("\ninitializing the game...\n");
-  refresh();
-  init_game(user_mode);
+  return;
 }
 
 void return_cords(int * x, int * y) {
@@ -233,9 +246,6 @@ void display_boards(void)
   stat_height= 5;
   stat_width=50;
 
-  cbreak();
-  noecho();                       
-
   keypad(stdscr, TRUE);            
   height = 3+BOARD_SIZE; 
   width = 14+BOARD_SIZE; 
@@ -256,10 +266,6 @@ void display_boards(void)
 
   create_grid(players_grid);
 
-  start_color();
-  init_pair(2, COLOR_YELLOW, COLOR_BLACK);
-  init_pair(3, COLOR_BLUE, COLOR_BLACK);
-  init_pair(4, COLOR_RED, COLOR_BLACK);
   clear();
   refresh();
 
@@ -374,7 +380,7 @@ void do_gameplay(const int sock, int fire)
   } while(fire > -1);
   clear();
   refresh();
-  printw("Game over, %s, you %s!\nthanks for playing!!!\n\npress any key to continue...\n", name, (win_status) ? "win" : "lose");
+  printw("Game over, %s, you %s!\nthanks for playing!!!\n\npress any key to continue...\n", global_user_name, (win_status) ? "win" : "lose");
   refresh();
   getch();
 }
@@ -397,13 +403,7 @@ void title_screen()
     NULL
   };
 
-  /* get width of picture */
-  int picwidth = get_picture_width(picture);
-  int leftoffset = (COLS - picwidth)/2;
-  int topoffset = 2;
-  for (int i=0; i<ARRAY_SIZE(picture); ++i) {
-    mvprintw(topoffset+i, leftoffset, picture[i]);
-  }
+  print_picture(stdscr, picture);
 }
 
 
@@ -413,27 +413,28 @@ void title_screen()
 /* from http://www.linuxdoc.org/HOWTO/NCURSES-Programming-HOWTO/panels.html */
 void print_in_middle(WINDOW *win, int starty,
                      int startx, int width,
-                     char *string, chtype color)
-{       int length, x, y;
-        float temp;
+                     char const *const string, chtype color)
+{
+  int length, x, y;
+  float temp;
 
-        if(win == NULL)
-                win = stdscr;
-        getyx(win, y, x);
-        if(startx != 0)
-                x = startx;
-        if(starty != 0)
-                y = starty;
-        if(width == 0)
-                width = 80;
+  if(win == NULL)
+    win = stdscr;
+  getyx(win, y, x);
+  if(startx != 0)
+    x = startx;
+  if(starty != 0)
+    y = starty;
+  if(width == 0)
+    width = 80;
 
-        length = strlen(string);
-        temp = (width - length)/ 2;
-        x = startx + (int)temp;
-        wattron(win, color);
-        mvwprintw(win, y, x, "%s", string);
-        wattroff(win, color);
-        refresh();
+  length = strlen(string);
+  temp = (width - length)/ 2;
+  x = startx + (int)temp;
+  wattron(win, color);
+  mvwprintw(win, y, x, "%s", string);
+  wattroff(win, color);
+  refresh();
 }
 
 
@@ -446,4 +447,57 @@ int get_picture_width(char *picture[])
     maxlen = len > maxlen ? len : maxlen;
   }
   return maxlen;
+}
+
+void print_picture(WINDOW *win, char *picture[])
+{
+  /* get width of picture */
+  int picwidth = get_picture_width(picture);
+  int leftoffset = (COLS - picwidth)/2;
+  int topoffset = 2;
+  for (int i=0; picture[i] != NULL; ++i) {
+    mvwprintw(win, topoffset+i, leftoffset, picture[i]);
+  }
+}
+
+char *get_text_string_from_centered_panel(char const *const prompt)
+{
+  WINDOW *panel_win;
+  PANEL *the_panel;
+  int panel_height=6,panel_width;
+  char *dest = malloc(100);
+
+  int promptlen = strlen(prompt);
+  panel_width = MAX(30, promptlen+5);
+
+  /* Create the window to hold the panel */
+  panel_win = newwin(panel_height,
+                     panel_width,
+                     (LINES-panel_height)/2,
+                     (COLS-panel_width)/2);
+  box(panel_win, 0, 0);
+  print_in_middle(panel_win, 1,
+		  0, panel_width,
+		  prompt, COLOR_PAIR(6));
+  wattron(panel_win, COLOR_PAIR(5));
+  mvwhline(panel_win, 3, 2, ' ', panel_width-4);
+  curs_set(1); // make cursor visible
+  echo();
+  mvwgetnstr(panel_win, 3, 2, dest, panel_width-6);
+  noecho();
+  curs_set(0); // make cursor invisible
+  wattroff(panel_win, COLOR_PAIR(5));
+  
+  /* create the panel from our window */
+  the_panel = new_panel(panel_win);
+  top_panel(the_panel);
+  update_panels();
+  doupdate();
+
+  del_panel(the_panel);
+  update_panels();
+  delwin(panel_win);
+  doupdate();
+
+  return dest;
 }

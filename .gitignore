@@ -1,5 +1,7 @@
-*.o
-termship
-*.out
-*.files
+*.bak
+*~
 tlog.txt
+*.o
+*.files
+*.out
+termship

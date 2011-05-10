@@ -8,7 +8,7 @@ struct player_pos_
 }; 
 
 
-void place_hit_or_mis(WINDOW * win,int mesg, int x, int y);
+void place_hit_or_mis(WINDOW *,int, int, int);
 
 /**
  * Displays the current battlefield to the user.
@@ -30,11 +30,13 @@ void title_screen();
 /**
  * Utility functions and macros
  */
-void print_in_middle(WINDOW *, int, int, int, char *, chtype);
+void print_in_middle(WINDOW *, int, int, int, char const *const, chtype);
 /* Picture _must_ be NULL terminated */
 int get_picture_width(char *[]);
-
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+/* print picture to window */
+void print_picture(WINDOW *, char *[]);
+/* get a string from a little pop-up dialog */
+char *get_text_string_from_centered_panel(char const * const);
 
 
 #endif
