@@ -8,6 +8,7 @@
 #include <panel.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "gamepieces.h"
 #include "connection.h"
 #include "screen.h"
@@ -17,7 +18,7 @@
 #define MAX_NAME 100
 
 extern Ship Shipset[];
-char global_user_name[MAX_NAME];
+char *global_user_name;
 
 WINDOW *player_win;
 WINDOW *opponent_win;
@@ -88,28 +89,9 @@ void main_menu()
   noecho();
   title_screen();
 
-  /* create the panel: */
-  panel_win = newwin(panel_height,
-                     panel_width,
-                     (LINES-panel_height)/2,
-                     (COLS-panel_width)/2);
-  box(panel_win, 0, 0);
-  print_in_middle(panel_win, 2, 0, panel_width,
-                  "Welcome to termship!", COLOR_PAIR(7));
-  print_in_middle(panel_win, 3, 0, panel_width,
-                  "(Press any key)", COLOR_PAIR(7));
-  /* mvwprintw(panel_win, 1, 1, "Test me"); */
-  refresh();
-  the_panel = new_panel(panel_win);
-  top_panel(the_panel);
-  update_panels();
-  doupdate();
+  show_message_box("Welcome to termship!");
   getch();
-
-  del_panel(the_panel);
-  update_panels();
-  delwin(panel_win);
-  doupdate();
+  hide_message_box();
 
   clear();
 
@@ -147,12 +129,12 @@ void main_menu()
 
   if (0==strcmp(selected_name, "Create")) {
     user_mode = SERVER_MODE;
-    strncpy(global_user_name, get_text_string_from_centered_panel("Enter your name"), MAX_NAME);
+    global_user_name = get_text_string_from_centered_panel("Enter your name");
     player = create_player(global_user_name, user_mode);
     init_game(user_mode);
   } else if (0==strcmp(selected_name, "Join")) {
     user_mode = CLIENT_MODE;
-    strncpy(global_user_name, get_text_string_from_centered_panel("Enter your name"), MAX_NAME);
+    global_user_name = get_text_string_from_centered_panel("Enter your name");
     player = create_player(global_user_name, user_mode);
     init_game(user_mode);
   }
@@ -404,6 +386,61 @@ void title_screen()
   };
 
   print_picture(stdscr, picture);
+
+  int numsquiggles = 8;
+  int numreps = 2;
+  int framespeed = 60000;
+  /* do a little "animation" */
+  for (int i=0; i<numreps; ++i) {
+    /* pushing out */
+    for (int j=0; j<numsquiggles; ++j) {
+      char msg[100];
+      int s=0;
+      for (int k=0; k<j+1; ++k) {
+	msg[s++] = '~';
+      }
+      msg[s++]=' ';
+      msg[s++]='t';
+      msg[s++]='e';
+      msg[s++]='r';
+      msg[s++]='m';
+      msg[s++]='s';
+      msg[s++]='h';
+      msg[s++]='i';
+      msg[s++]='p';
+      msg[s++]=' ';
+      for (int k=0; k<j+1; ++k) {
+	msg[s++] = '~';
+      }
+      msg[s++] = '\0';
+      show_message_box(msg);
+      usleep(framespeed);
+    }
+    /* pulling in */
+    for (int j=numsquiggles; j>0; --j) {
+      char msg[100];
+      int s=0;
+      for (int k=0; k<j+1; ++k) {
+	msg[s++] = '~';
+      }
+      msg[s++]=' ';
+      msg[s++]='t';
+      msg[s++]='e';
+      msg[s++]='r';
+      msg[s++]='m';
+      msg[s++]='s';
+      msg[s++]='h';
+      msg[s++]='i';
+      msg[s++]='p';
+      msg[s++]=' ';
+      for (int k=0; k<j+1; ++k) {
+	msg[s++] = '~';
+      }
+      msg[s++] = '\0';
+      show_message_box(msg);
+      usleep(framespeed);
+    }
+  }
 }
 
 
@@ -435,6 +472,69 @@ void print_in_middle(WINDOW *win, int starty,
   mvwprintw(win, y, x, "%s", string);
   wattroff(win, color);
   refresh();
+}
+
+static WINDOW *message_box_win;
+static PANEL *message_box_panel;
+static int last_message_box_width=0;
+/**
+ * Shows a global message box in the middle of the screen
+ */
+void show_message_box(char const *const string)
+{
+  int width = strlen(string)+6;
+  int height = 5;
+  int leftoffset = 1;
+  
+  /* if there's an existing message box up and this string is a
+     different length than the last one, we need to recompute the
+     width, so we just hide the message box. */
+  if (last_message_box_width != width)
+    hide_message_box();
+
+  if (message_box_win == NULL) {
+    message_box_win = newwin(height, width,
+			     (LINES-height)/2,
+			     (COLS-width)/2);
+  }
+  if (message_box_panel == NULL) {
+    message_box_panel = new_panel(message_box_win);
+  }
+  box(message_box_win, 0, 0);
+
+  wattron(message_box_win, WHITE_ON_RED);
+  for (int i=0; i<width-2; ++i)
+    mvwprintw(message_box_win, 1, i+1, "-"); /* fill above the text */
+  for (int i=0; i<width-2; ++i)
+    mvwprintw(message_box_win, 3, i+1, "-"); /* fill above the text */
+  mvwprintw(message_box_win, 2, 1, "   "); /* fill the left of the text */
+  mvwprintw(message_box_win, 2, leftoffset+strlen(string)+2, "  "); /* fill the right of the text */
+  wattroff(message_box_win, WHITE_ON_RED);
+
+  print_in_middle(message_box_win, 2, leftoffset, width-1, string, WHITE_ON_RED);
+
+  top_panel(message_box_panel);
+  update_panels();
+  doupdate();
+
+  last_message_box_width = width;
+}
+
+/**
+ * Hides the global message box
+ */
+void hide_message_box()
+{
+  if (message_box_panel != NULL) {
+    del_panel(message_box_panel);
+    message_box_panel = NULL;
+    update_panels();
+  }
+  if (message_box_win != NULL) {
+    delwin(message_box_win);
+    message_box_win = NULL;
+    doupdate();
+  }
 }
 
 
@@ -500,4 +600,9 @@ char *get_text_string_from_centered_panel(char const *const prompt)
   doupdate();
 
   return dest;
+}
+
+void cleanup_ncurses()
+{
+  endwin();			/* end curses mode */
 }

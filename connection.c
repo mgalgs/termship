@@ -9,12 +9,17 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <stdint.h>
+#include <unistd.h>
 #include "connection.h"
 #include "gamepieces.h"
 #include "screen.h"
 #include "Btypes.h"
 
-#define PORT 4740
+
+#define START_PORT 4740
+#define END_PORT 20042
+#define PORT_INTERVAL 42
 #define MAX_MSG 100
 #define MAX_IP 20
 #define MAX_USER_NAME 50
@@ -37,6 +42,7 @@ void init_game(const int user_mode)
 
   //open socket:
   if ( (sock = socket(PF_INET, SOCK_STREAM, 0)) == -1 ) {
+    cleanup_ncurses();
     perror("Error creating socket");
     exit(EXIT_FAILURE);
   }
@@ -44,46 +50,68 @@ void init_game(const int user_mode)
 
   memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
-  addr.sin_port = htons(PORT);
-
-
 
 
   if (user_mode == CLIENT_MODE) {
-    char ip[MAX_IP];
-    printw("Enter IP address of server (enter nothing for localhost): ");
-    getstr(ip);
-    if (strcmp(ip,"") == 0)
+    bool found_server = false;
+    char *ip = get_text_string_from_centered_panel("Enter IP address of server (enter nothing for localhost): ");
+    if (ip[0] == '\0')
       strcpy(ip, "127.0.0.1");
-    printw("using IP: %s\n",ip);
+    /* char msg[50]; */
+    /* sprintf(msg, "using IP: %s", ip); */
+    /* show_message_box(msg); */
+    /* getch(); */
+    /* cleanup_ncurses(); */
+    /* exit(EXIT_SUCCESS); */
 
     //set up addr with IP address:
     if ( inet_pton(AF_INET, ip, &addr.sin_addr) == 0 ) {
+      cleanup_ncurses();
       perror("That doesn't look like a valid IP address");
       exit(EXIT_FAILURE);
     }
     clear();
+
+
     //connect
-    if ( (connect(sock, (struct sockaddr *) &addr, sizeof(addr))) == -1 ) {
-      perror("Error connecting to server");
-      exit(EXIT_FAILURE);
-    } else {
+    for (uint16_t i=START_PORT; i<END_PORT; i+=PORT_INTERVAL) {
+      char str[70];
+      sprintf(str, "Searching for battleship server on port %u", i);
+      show_message_box(str);
+      addr.sin_port = htons(i);
+      if ( (connect(sock, (struct sockaddr *) &addr, sizeof(addr))) == 0 ) {
+	if (verify_server(sock)) {
+	  found_server = true;
+	  break;
+	}
+      }
+      usleep(50000);		/* 50 ms pause between scans */
+    }
+    if (found_server) {
       exchange_names(sock,1);
       printw("Connected to server!\nYou will be battling against %s\n\nPress any key to continue...", peer_user_name);
+      refresh();
+      getch();
+      do_gameplay(sock, 0);
+    } else {
+      cleanup_ncurses();
+      printf("Couldn't find a game!\n"); /* TODO: return to main menu */
+      exit(EXIT_FAILURE);
     }
-    refresh();
-    getch();
-    do_gameplay(sock, 0);
   } else {
     int i = 0;
+    addr.sin_port = htons(get_battleship_port());
+
     //bind
     if ( bind(sock, (struct sockaddr *) &addr, sizeof(addr)) == -1) {/*bind error*/
+      cleanup_ncurses();
       perror("bind error");
       exit(EXIT_FAILURE);
     }
 
     //listen
     if ( listen(sock, 100) == -1 ) {/*listen error*/
+      cleanup_ncurses();
       perror("listen error");
       exit(EXIT_FAILURE);
     }
@@ -94,15 +122,27 @@ void init_game(const int user_mode)
       clear();
       printw("Waiting for a client to connect.%s", i ? "." : "..");
       refresh();
-      i = ~i;
+      i = !i;
       accept_sock = accept(sock, (struct sockaddr *) &addr, &len);
-      exchange_names(accept_sock,0);
-      printw("Connected to client!\nYou will be battling against %s\n\nPress any key to continue...", peer_user_name);
-      refresh();
-      getch();
-      do_gameplay(accept_sock, 1);
+      if (verify_client(sock)) {
+	exchange_names(accept_sock,0);
+	printw("Connected to client!\nYou will be battling against %s\n\nPress any key to continue...", peer_user_name);
+	refresh();
+	getch();
+	do_gameplay(accept_sock, 1);
+      }
     }
   }
+}
+
+/**
+ * Gets a random battleship port. A battleship port is any multiple of
+ * 42 in the range [4740..20,042] (that's 365 possible ports, 1 for
+ * each day of the year -- not really).
+ */
+uint16_t get_battleship_port()
+{
+  return 4740 + ((rand() % 365) * 42);
 }
 
 /**
@@ -114,6 +154,7 @@ int do_fire(const int sock, const int x, const int y)
   int nbytes;
   buf = CreateBMesg(BFIRE, x, y);
   if ( nbytes = send(sock, buf, sizeof(BMesg), 0) == -1) { /*send error*/
+    cleanup_ncurses();
     perror("send error");
     exit(EXIT_FAILURE);
   }
@@ -153,6 +194,7 @@ int do_receive(const int sock)
   char *scratch;
   buf = CreateEmptyBMesg();
   if ( (nbytes = recv(sock, buf, MAX_MSG, 0) == -1) ) { /*recv error*/
+    cleanup_ncurses();
     perror("recv error");
     exit(EXIT_FAILURE);
   }
@@ -174,6 +216,7 @@ int do_receive(const int sock)
 	return res;
       }
       else {
+	cleanup_ncurses();
 	perror("Unexpected case in do_receive");
 	exit(EXIT_FAILURE);
       }
@@ -184,6 +227,7 @@ int do_receive(const int sock)
   }
   //At this point we should have sent exactly 1 response to the other user *and returned*
   //WE SHOULD NEVER GET HERE
+  cleanup_ncurses();
   perror("Reached unexpected worlds....");
   exit(EXIT_FAILURE);
   return -1; //just to make the compiler happy
@@ -199,6 +243,7 @@ int check_hit(const BMesg *buf)
   int x,y,lenx,leny,i,j;
   refresh();
   if ( (scratch = index(buf->code, ',')) == NULL) { /*comma not found*/
+    cleanup_ncurses();
     perror("Invalid BFIRE message detected in check_hit");
     exit(EXIT_FAILURE);
   } else { /*this is an "x,y" code*/
@@ -275,6 +320,7 @@ void send_hit(const int sock, const char *code)
   if (code)
     strcpy(buf->code, code);
   if ( nbytes = send(sock, buf, sizeof(BMesg), 0) == -1) { /*send error*/
+    cleanup_ncurses();
     perror("send error");
     exit(EXIT_FAILURE);
   }
@@ -290,6 +336,7 @@ void send_miss(const int sock)
   buf = CreateEmptyBMesg();
   buf->msg=BMISS;
   if ( nbytes = send(sock, buf, sizeof(BMesg), 0) == -1) { /*send error*/
+    cleanup_ncurses();
     perror("send error");
     exit(EXIT_FAILURE);
   }
@@ -302,6 +349,7 @@ void get_response(const int sock, BMesg *buf)
 {
   int nbytes;
   if ( (nbytes = recv(sock, buf, MAX_MSG, 0) == -1) ) { /*recv error*/
+    cleanup_ncurses();
     perror("recv error");
     exit(EXIT_FAILURE);
   }
@@ -329,6 +377,7 @@ void get_user_name(const int sock)
 {
   int nbytes;
   if ( (nbytes = recv(sock, peer_user_name, MAX_USER_NAME, 0)) == -1) {
+    cleanup_ncurses();
     perror("Error getting other user's name...");
     exit(EXIT_FAILURE);
   }
@@ -339,7 +388,64 @@ void send_user_name(const int sock)
 {
   int nbytes;
   if ( (nbytes = send(sock, global_user_name, strlen(global_user_name)+1/*for '\0'*/, 0)) == -1) { /*send error*/
+    cleanup_ncurses();
     perror("send error");
     exit(EXIT_FAILURE);
   }
+}
+
+void send_byte(const int sock, uint8_t byte)
+{
+  if (-1 == send(sock,
+		 &byte,
+		 1, 0)) { /*send error*/
+    cleanup_ncurses();
+    perror("send error");
+    exit(EXIT_FAILURE);
+  }
+}
+
+uint8_t recv_byte(const int sock)
+{
+  uint8_t byte;
+  if ( -1 == recv(sock,
+		  &byte,
+		  1, 0)) {
+    cleanup_ncurses();
+    perror("Error getting other user's name...");
+    exit(EXIT_FAILURE);
+  }
+  return byte;
+}
+
+bool verify_server(const int sock)
+{
+  show_message_box("Verifying server -- step 1...");
+  /* Handshake: send a 42, recv a 47 in return, send a 49 back. */
+  send_byte(sock, 42);
+
+  show_message_box("Verifying server -- step 2...");
+  if (recv_byte(sock) != 47) return false;
+
+  show_message_box("Verifying server -- step 3...");
+  send_byte(sock, 49);
+
+  hide_message_box();
+  return true;
+}
+
+bool verify_client(const int sock)
+{
+  /* Handshake: recv a 42, send a 47 back, recv a 49 in return. */
+  show_message_box("Verifying client -- step 1...");
+  if (recv_byte(sock) != 42) return false;
+
+  show_message_box("Verifying client -- step 2...");
+  send_byte(sock, 47);
+
+  show_message_box("Verifying client -- step 3...");
+  if (recv_byte(sock) != 49) return false;
+
+  hide_message_box();
+  return true;
 }

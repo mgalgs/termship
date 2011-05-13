@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "Btypes.h"
+#include "screen.h"
 
 /**
  * Returns 1 if passed in int is a valid message (BMesg.msg), else returns 0
@@ -30,6 +31,7 @@ BMesg *CreateBMesg(int MESS, int x, int y)
   newBMesg = CreateEmptyBMesg();
   //do some validation:
   if (!validMesg(MESS)) {
+    cleanup_ncurses();
     perror("Invalide message passed to CreateBMesg");
     exit(EXIT_FAILURE);
   }

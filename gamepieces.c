@@ -78,11 +78,13 @@ Board *create_board()
 {
   Board *new_board;
   if ( (new_board = (Board *) malloc(sizeof(Board))) == NULL ) {/*malloc error*/
+    cleanup_ncurses();
     perror("malloc error");
     exit(EXIT_FAILURE);
   }
   new_board->unsunk_cnt = 5;
   if ( (new_board->ships = (Ship *) malloc(sizeof(Shipset))) == NULL ) {
+    cleanup_ncurses();
     perror("malloc error");
     exit(EXIT_FAILURE);
   }
@@ -96,6 +98,7 @@ Player *create_player(const char *name, const int user_mode)
 {
   Player *new_player;
   if ( (new_player = (Player *) malloc(sizeof(Player))) == NULL ) { /*malloc error*/
+    cleanup_ncurses();
     perror("malloc error");
     exit(EXIT_FAILURE);
   }

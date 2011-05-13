@@ -1,7 +1,7 @@
 #termship
 
 CC=gcc
-CFLAGS=-g -std=c99
+CFLAGS=-g -std=gnu99
 OBJS=termship.o connection.o screen.o gamepieces.o Btypes.o log.o
 # CFLAGS += -DTEST_SHIPS
 
