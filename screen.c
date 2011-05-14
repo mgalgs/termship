@@ -18,7 +18,8 @@
 #define MAX_NAME 100
 
 extern Ship Shipset[];
-char *global_user_name;
+char global_user_name[MAX_NAME];
+char peer_user_name[MAX_NAME];
 
 WINDOW *player_win;
 WINDOW *opponent_win;
@@ -89,7 +90,7 @@ void main_menu()
   noecho();
   title_screen();
 
-  show_message_box("Welcome to termship!");
+  show_message_box("Welcome to termship!\n(Press any key)");
   getch();
   hide_message_box();
 
@@ -129,12 +130,16 @@ void main_menu()
 
   if (0==strcmp(selected_name, "Create")) {
     user_mode = SERVER_MODE;
-    global_user_name = get_text_string_from_centered_panel("Enter your name");
+    get_text_string_from_centered_panel("Enter your name",
+					global_user_name,
+					MAX_NAME);
     player = create_player(global_user_name, user_mode);
     init_game(user_mode);
   } else if (0==strcmp(selected_name, "Join")) {
     user_mode = CLIENT_MODE;
-    global_user_name = get_text_string_from_centered_panel("Enter your name");
+    get_text_string_from_centered_panel("Enter your name",
+					global_user_name,
+					MAX_NAME);
     player = create_player(global_user_name, user_mode);
     init_game(user_mode);
   }
@@ -142,7 +147,8 @@ void main_menu()
   return;
 }
 
-void return_cords(int * x, int * y) {
+void return_cords(int * x, int * y)
+{
   struct player_pos_ player_pos;
   int startx, starty,height, width;
   
@@ -477,19 +483,38 @@ void print_in_middle(WINDOW *win, int starty,
 static WINDOW *message_box_win;
 static PANEL *message_box_panel;
 static int last_message_box_width=0;
+static int last_message_box_height=0;
 /**
  * Shows a global message box in the middle of the screen
  */
 void show_message_box(char const *const string)
 {
-  int width = strlen(string)+6;
+  int width;
   int height = 5;
   int leftoffset = 1;
-  
+  int largest_line_length = 0, prev_newline_index = 0;
+
+  /* Count the newlines to determine any extra height we'll need to add */
+  for (int i=0; i<strlen(string); ++i) {
+    if (string[i] == '\n') {
+      largest_line_length = i-prev_newline_index > largest_line_length
+	? i-prev_newline_index
+	: largest_line_length;
+      prev_newline_index = i;
+      height++;
+    }
+  }
+  largest_line_length = largest_line_length == 0
+    ? strlen(string)
+    : largest_line_length;
+
+  width = largest_line_length + 6;
+
+
   /* if there's an existing message box up and this string is a
      different length than the last one, we need to recompute the
      width, so we just hide the message box. */
-  if (last_message_box_width != width)
+  if (last_message_box_width != width || last_message_box_height != height)
     hide_message_box();
 
   if (message_box_win == NULL) {
@@ -500,24 +525,57 @@ void show_message_box(char const *const string)
   if (message_box_panel == NULL) {
     message_box_panel = new_panel(message_box_win);
   }
+  wattron(message_box_win, BLUE_ON_BLACK);
   box(message_box_win, 0, 0);
+  wattroff(message_box_win, BLUE_ON_BLACK);
+  /* border(186, 186, 205, 205, */
+  /* 	 201, 187, 200, 188); */
+  /* border(ls, rs, chtype ts, chtype bs, */
+  /* 	 chtype tl, chtype tr, chtype bl, chtype br); */
+
+  int current_y = 1;
+  wattron(message_box_win, WHITE_ON_RED);
+  for (int i=0; i<width-2; ++i)
+    mvwprintw(message_box_win, current_y, i+1, "-"); /* fill above the text */
+  current_y++;
+
+
+  /* Now for the printing. We need to split the string on newlines (if
+     any) and print each of those separately */
+  char *our_string = (char *) malloc(strlen(string)+1);
+  strcpy(our_string, string);
+  if (strchr(string, '\n') != NULL) { /* we have newlines */
+    for (char *next_tok = strtok(our_string, "\n");
+	 next_tok != NULL;
+	 next_tok = strtok(NULL, "\n")) {
+      wattron(message_box_win, WHITE_ON_RED);
+      mvwhline(message_box_win, current_y, 1, ' ', width-2);
+      print_in_middle(message_box_win, current_y,
+		      leftoffset, width-1, next_tok,
+		      WHITE_ON_RED);
+      current_y++;
+    }
+  } else {
+    wattron(message_box_win, WHITE_ON_RED);
+    mvwhline(message_box_win, current_y, 1, ' ', width-2);
+    print_in_middle(message_box_win, current_y, leftoffset, width-1, string, WHITE_ON_RED);
+    current_y++;
+  }
 
   wattron(message_box_win, WHITE_ON_RED);
   for (int i=0; i<width-2; ++i)
-    mvwprintw(message_box_win, 1, i+1, "-"); /* fill above the text */
-  for (int i=0; i<width-2; ++i)
-    mvwprintw(message_box_win, 3, i+1, "-"); /* fill above the text */
-  mvwprintw(message_box_win, 2, 1, "   "); /* fill the left of the text */
-  mvwprintw(message_box_win, 2, leftoffset+strlen(string)+2, "  "); /* fill the right of the text */
+    mvwprintw(message_box_win, current_y, i+1, "-"); /* fill below the text */
+
   wattroff(message_box_win, WHITE_ON_RED);
 
-  print_in_middle(message_box_win, 2, leftoffset, width-1, string, WHITE_ON_RED);
+  free(our_string);
 
   top_panel(message_box_panel);
   update_panels();
   doupdate();
 
   last_message_box_width = width;
+  last_message_box_height = height;
 }
 
 /**
@@ -560,12 +618,15 @@ void print_picture(WINDOW *win, char *picture[])
   }
 }
 
-char *get_text_string_from_centered_panel(char const *const prompt)
+/**
+ * dest should have enough space (at least len) to hold the string.
+ */
+void get_text_string_from_centered_panel(char const *const prompt, char *dest, int len)
 {
   WINDOW *panel_win;
   PANEL *the_panel;
   int panel_height=6,panel_width;
-  char *dest = malloc(100);
+  /* char *dest = malloc(100); */
 
   int promptlen = strlen(prompt);
   panel_width = MAX(30, promptlen+5);
@@ -583,7 +644,7 @@ char *get_text_string_from_centered_panel(char const *const prompt)
   mvwhline(panel_win, 3, 2, ' ', panel_width-4);
   curs_set(1); // make cursor visible
   echo();
-  mvwgetnstr(panel_win, 3, 2, dest, panel_width-6);
+  mvwgetnstr(panel_win, 3, 2, dest, len);
   noecho();
   curs_set(0); // make cursor invisible
   wattroff(panel_win, COLOR_PAIR(5));
@@ -598,8 +659,6 @@ char *get_text_string_from_centered_panel(char const *const prompt)
   update_panels();
   delwin(panel_win);
   doupdate();
-
-  return dest;
 }
 
 void cleanup_ncurses()

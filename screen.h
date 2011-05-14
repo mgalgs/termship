@@ -40,8 +40,11 @@ void show_message_box(char const *const string);
 /* Hide the global message box */
 void hide_message_box();
 
-/* get a string from a little pop-up dialog */
-char *get_text_string_from_centered_panel(char const * const);
+/**
+ * get a string from a little pop-up dialog.
+ * dest should have space.
+ */
+void get_text_string_from_centered_panel(char const * const, char *, int);
 
 /* Print in the middle of the given window */
 void print_in_middle(WINDOW *, int, int, int, char const *const, chtype);
@@ -55,7 +58,6 @@ void print_picture(WINDOW *, char *[]);
 void cleanup_ncurses();
 
 /* COLORS */
-#define CLR_RED_ON_BLACK COLOR_PAIR(5)
 #define YELLOW_ON_BLACK COLOR_PAIR(2)
 #define BLUE_ON_BLACK COLOR_PAIR(3)
 #define RED_ON_BLACK COLOR_PAIR(4)

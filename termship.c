@@ -2,6 +2,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <unistd.h>
 #include "screen.h"
 #include "connection.h"
 #include "gamepieces.h"
@@ -13,8 +14,10 @@ Player *player;
 void sigsegv_handler(int sig)
 {
   cleanup_ncurses();
-  printf("Whoa, we just overwrote The Grid. Better call Cora...\n");
-  exit(EXIT_FAILURE);
+  printf("Whoa, we just overwrote The Grid. Cora's dumping the core of whatever's left...\n");
+  fflush(stdout);
+  signal(sig, SIG_DFL);
+  kill(getpid(), sig);
 }
 
 int main() {
