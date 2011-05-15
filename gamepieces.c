@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <ncurses.h>
 #include <time.h>
+#include <unistd.h>
 #include "gamepieces.h"
 #include "screen.h"
 #include "Btypes.h"
@@ -25,10 +26,19 @@ Ship Shipset[] = {
 };
 
 
+Ship PeerShipset[] = {
+  "Aircraft Carrier",5,0,0,-1,0,HEALTHY,
+  "Battleship",4,0,0,-1,0,HEALTHY,
+  "Cruiser",3,0,0,-1,0,HEALTHY,
+  "Submarine",3,0,0,-1,0,HEALTHY,
+  "Destroyer",2,0,0,-1,0,HEALTHY
+};
+
+
 /**
  * This function creats a grid of ships from Shipset
  */
-void create_grid(char grid[BOARD_SIZE][BOARD_SIZE])
+void create_grid(char grid[BOARD_SIZE][BOARD_SIZE], Ship ships[])
 {
   int x, y, dir, size, i,j;
   for (i = 0; i< BOARD_SIZE; i++) {
@@ -38,10 +48,10 @@ void create_grid(char grid[BOARD_SIZE][BOARD_SIZE])
   }
 
   for (i=0; i<NUM_SHIPS; i++) {
-    x = Shipset[i].x;
-    y = Shipset[i].y;
-    dir = Shipset[i].direction;
-    size = Shipset[i].size;
+    x = ships[i].x;
+    y = ships[i].y;
+    dir = ships[i].direction;
+    size = ships[i].size;
     if(dir) { /*vertical*/
       for (j=0;j<size; j++) {
 	if (grid[y+j][x] != '_')
@@ -166,11 +176,9 @@ void initShips()
     display_boards();
     mvprintw(0,1,"Use arrows to place ship, 'r' to rotate, space to select another ship.");
     mvprintw(1,1,"Press enter to finish. %s", extramsg);
-    mvprintw(2,8, "Placing ship: \"%s\"", curship->name);
+    mvprintw(2,8, "Placing your \"%s\"", curship->name);
     echo();
     ch = getch();
-    /* sprintf(msg, "got key: %d\n", ch); */
-    /* write_to_log(msg); */
 
     strcpy(extramsg, "");
     switch (ch) {
@@ -200,11 +208,14 @@ void initShips()
       for (i=0; i<NUM_SHIPS; i++) {
 	if (!valid_placement(&(Shipset[i]))) {
 	  sprintf(msg, "%s hasn't been placed yet", Shipset[i].name);
+	  show_message_box(msg);
+	  sleep(2);
 	  done = false;
 	  break;
 	}
       }
-      create_grid(players_grid);
+      if (!done) break;
+      create_grid(players_grid, Shipset);
       /* check for overlaps */
       for (i=0; i<BOARD_SIZE; ++i) {
 	for (j=0; j<BOARD_SIZE; ++j) {
@@ -219,6 +230,8 @@ void initShips()
       }
       if (!done) {
 	sprintf(extramsg,"[Can't continue: %s]", msg);
+	show_message_box(extramsg);
+	sleep(2);
 	write_to_log("Can't continue! Not all ships in valid locations.\n");
       }
       break;
@@ -232,6 +245,25 @@ void initShips()
     }
   } /* eo while(!done) */
 
+}
+
+bool is_there_a_ship_here(Ship ships[], int x, int y)
+{
+  //check for a hit:
+  for (int i=0; i<NUM_SHIPS; i++) { //for each ship
+    for (int j=0; j<Shipset[i].size; j++) { //for each "slot" on the ship
+      if (Shipset[i].direction == 1) { /*ship placed vertically*/
+	if ( (Shipset[i].x == x) && (Shipset[i].y+j == y) ) {
+	  return true;
+	}
+      } else { /*ship placed horizontally*/
+	if ( (Shipset[i].x+j == x) && (Shipset[i].y == y) ) {
+	  return true;
+	}
+      }
+    }
+  }
+  return false;
 }
 
 bool valid_placement(Ship *ship)

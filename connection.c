@@ -29,9 +29,10 @@ extern Ship Shipset[];
 extern WINDOW *opponent_win;
 extern char global_user_name[];
 extern char peer_user_name[];
+extern int user_mode;
 
 
-void init_game(const int user_mode)
+void init_game()
 {
   int sock, accept_sock;
   struct sockaddr_in addr;
@@ -95,7 +96,7 @@ void init_game(const int user_mode)
       if (found_server) {
 	show_message_box("Connected to server!");
 	usleep(100000);		/* 1s */
-	exchange_names(sock,1);
+	exchange_names(sock);
 	sprintf(msg, "You will be battling against %s.\nPress any key to continue...", peer_user_name);
 	show_message_box(msg);
 	getch();
@@ -134,7 +135,7 @@ void init_game(const int user_mode)
       i = !i;
       accept_sock = accept(sock, (struct sockaddr *) &addr, &len);
       if (verify_client(accept_sock)) {
-	exchange_names(accept_sock,0);
+	exchange_names(accept_sock);
 	sprintf(msg, "You will be battling against %s.\nPress any key to continue...", peer_user_name);
 	/* sprintf(msg, "Connected to client!\nYou will be battling against %s\nPress any key to continue...", peer_user_name); */
 	show_message_box(msg);
@@ -368,22 +369,20 @@ void get_response(const int sock, BMesg *buf)
 
 /**
  * Get the other user's name.
- * mode=0 means server, mode=1 means client
  */
-void exchange_names(const int sock, const int mode)
+void exchange_names(const int sock)
 {
-  int nbytes;
-  if (mode) {
-    get_user_name(sock);
+  if (user_mode == SERVER_MODE) {
+    get_peer_user_name(sock);
     send_user_name(sock);
   } else { //reverse the order
     send_user_name(sock);
-    get_user_name(sock);
+    get_peer_user_name(sock);
   }
 }
 
 //gets user name
-void get_user_name(const int sock)
+void get_peer_user_name(const int sock)
 {
   int nbytes;
   if ( (nbytes = recv(sock, peer_user_name, MAX_USER_NAME, 0)) == -1) {
@@ -403,6 +402,42 @@ void send_user_name(const int sock)
     exit(EXIT_FAILURE);
   }
 }
+
+/**
+ * Get the other user's name.
+ */
+void exchange_shipsets(const int sock)
+{
+  show_message_box("Waiting to exchange ships from opponent...");
+  if (user_mode == SERVER_MODE) {
+    get_peer_shipset(sock);
+    send_shipset(sock);
+  } else { //reverse the order
+    send_shipset(sock);
+    get_peer_shipset(sock);
+  }
+  hide_message_box();
+}
+
+void get_peer_shipset(const int sock)
+{
+  for (int i=0; i<NUM_SHIPS; ++i) {
+    Shipset[i].x = recv_byte(sock);
+    Shipset[i].y = recv_byte(sock);
+    Shipset[i].direction = recv_byte(sock);
+  }
+}
+
+void send_shipset(const int sock)
+{
+  for (int i=0; i<NUM_SHIPS; ++i) {
+    send_byte(sock, Shipset[i].x);
+    send_byte(sock, Shipset[i].y);
+    send_byte(sock, Shipset[i].direction);
+  }
+}
+
+
 
 void send_byte(const int sock, uint8_t byte)
 {

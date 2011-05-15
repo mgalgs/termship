@@ -19,6 +19,11 @@ void display_boards(void);
 
 
 /**
+ * Displays both battlefields. (Should only be used after using exchange_shipsets)
+ */
+void show_battlefields();
+
+/**
  * Shows the main menu
  */
 void main_menu();

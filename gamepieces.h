@@ -5,6 +5,7 @@
 #ifndef GAMEPIECES_H
 #define GAMEPIECES_H
 
+#include <stdint.h>
 
 #define CLIENT_MODE 1
 #define SERVER_MODE 0
@@ -18,12 +19,12 @@
 typedef struct Ship_
 {
   char *name;
-  int size;
-  int sunk; //0 for afloat, 1 for sunk
-  int x;
-  int y;
-  int direction; //0 for horizontal, 1 for vertical
-  int slots[MAX_SHIP_SIZE]; //0 for intact, 1 for hit
+  uint8_t size;
+  uint8_t sunk; //0 for afloat, 1 for sunk
+  uint8_t x;
+  uint8_t y;
+  uint8_t direction; //0 for horizontal, 1 for vertical
+  uint8_t slots[MAX_SHIP_SIZE]; //0 for intact, 1 for hit
 } Ship;
 
 typedef struct Board_
@@ -34,13 +35,6 @@ typedef struct Board_
   int mis[BOARD_SIZE][BOARD_SIZE];
     
 } Board;
-
-typedef struct Mapping_
-{
-  int x;
-  int y;
-  int direction;
-} Mapping;
 
 
 typedef struct Player_
@@ -56,12 +50,13 @@ typedef struct Player_
  */
 Player *create_player(const char *, const int);
 
-void create_grid(char grid[BOARD_SIZE][BOARD_SIZE]);
+void create_grid(char grid[BOARD_SIZE][BOARD_SIZE], Ship[]);
 
 /**
  * Sets a slot on a ship as hit
  */
 void setAsHit(const int, const int);
+bool is_there_a_ship_here(Ship [], int, int);
 Ship getShipById(const int);
 void printShips();
 void initShips();

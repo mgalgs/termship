@@ -18,14 +18,25 @@
 #define MAX_NAME 100
 
 extern Ship Shipset[];
+extern Ship PeerShipset[];
 char global_user_name[MAX_NAME];
 char peer_user_name[MAX_NAME];
+int user_mode;
+typedef enum SHOT_SPOT {
+  UNTOUCHED=0,
+  MISS,
+  HIT
+} SHOT_SPOT;
+SHOT_SPOT player_shots[BOARD_SIZE][BOARD_SIZE]; /* 1=hit, 2=miss */
+SHOT_SPOT peer_shots[BOARD_SIZE][BOARD_SIZE]; /* 1=hit, 2=miss */
+
 
 WINDOW *player_win;
 WINDOW *opponent_win;
 WINDOW *status_win;
 
-void place_hit_or_mis(WINDOW * win,int mesg, int x, int y) {
+void place_hit_or_mis(WINDOW * win,int mesg, int x, int y)
+{
   //-2game -1 hit sink 1hit  0miss
   //deal with hits first
 
@@ -34,23 +45,79 @@ void place_hit_or_mis(WINDOW * win,int mesg, int x, int y) {
     mvwprintw(win, y+2, x*2+3,"#");
     wattroff(win,COLOR_PAIR(4));
     wrefresh(win);
+    if (win == player_win)
+      player_shots[x][y] = HIT;
+    else
+      peer_shots[x][y] = HIT;
   } else { // miss
     wattron(win,COLOR_PAIR(3));
     mvwprintw(win, y+2, x*2+3,"@");
     wattroff(win,COLOR_PAIR(3));
     wrefresh(win);
+    if (win == player_win)
+      player_shots[x][y] = MISS;
+    else
+      peer_shots[x][y] = MISS;
   }
 }
 
 /**
- * Documentation here
+ * Display battlefields after exchanging boards.
  */
-void show_battlefield(const Board *board)
+void show_battlefields()
 {
-  printw("Hello, world!");
-  refresh();
-  getch();
-  return;
+  noecho();
+  bool checking_opponent = true;
+  bool cont = true;
+  while (cont) {
+    char field[BOARD_SIZE*BOARD_SIZE + 1000]; /* TODO: give me a break... */
+    int ind=0;
+    for (int y=0; y<BOARD_SIZE; ++y) {
+      for (int x=0; x<BOARD_SIZE; ++x) {
+	if (checking_opponent) { /* checking opponent */
+	  if (is_there_a_ship_here(PeerShipset, x, y)) {
+	    field[ind] = '*';
+	  }
+	  if (peer_shots[x][y] == HIT) {
+	    field[ind++] = '#';
+	  } else if (peer_shots[x][y] == MISS) {
+	    field[ind++] = '@';
+	  } else {
+	    field[ind++] = '_';
+	  }
+	} else {		/* checking user */
+	  if (is_there_a_ship_here(Shipset, x, y)) {
+	    field[ind] = '*';
+	  }
+	  if (player_shots[x][y] == HIT) {
+	    field[ind++] = '#';
+	  } else if (player_shots[x][y] == MISS) {
+	    field[ind++] = '@';
+	  } else {
+	    field[ind++] = '_';
+	  }
+	} /* eo checking_opponent */
+	field[ind++] = '|';
+      }
+      field[ind++] = '\n';
+    }
+    sprintf(&(field[ind]), "Currently displaying %s%s battlefield.\n"
+	    "Press any key to toggle battlefields.\n"
+	    "Press enter to continue",
+	    checking_opponent ? peer_user_name : "your",
+	    checking_opponent ? "'s" : "");
+    show_message_box(field);
+
+    int ch = getch();
+    switch(ch) {
+    case 10:
+    case KEY_ENTER:
+      cont = false;
+      break;
+    } /* eo switch */
+    checking_opponent = !checking_opponent;
+  }   /* eo while cont */
+  hide_message_box();
 }
 
 /**
@@ -58,12 +125,12 @@ void show_battlefield(const Board *board)
  */
 void main_menu()
 {
-  int user_mode;
   Player *player;
   WINDOW *panel_win;
   PANEL *the_panel;
   int panel_height=6,panel_width=50;
   char msg[200];
+
 
 
   MENU *my_menu;
@@ -141,7 +208,7 @@ void main_menu()
 					global_user_name,
 					MAX_NAME);
     player = create_player(global_user_name, user_mode);
-    init_game(user_mode);
+    init_game();
   }
 
   return;
@@ -151,6 +218,7 @@ void return_cords(int * x, int * y)
 {
   struct player_pos_ player_pos;
   int startx, starty,height, width;
+  char msg[100];
   
   player_pos.x = 0;
   player_pos.y = 0;
@@ -168,9 +236,10 @@ void return_cords(int * x, int * y)
 
   int ch;
   while((ch = getch())) 
-    {      
+    {
       switch(ch) 
-        {       case KEY_LEFT:
+        {
+	case KEY_LEFT:
             if (playerx > 3+startx+20) {
               playerx -=2;
               player_pos.x--;
@@ -201,19 +270,15 @@ void return_cords(int * x, int * y)
             move(playery, playerx);
             break;  
           }
-          break;
         case 10:
-          *x = player_pos.x;
-          *y = player_pos.y;
-          return;
-          break;
-          break;  
-                          
         case KEY_ENTER:
-          *x = player_pos.x;
-          *y = player_pos.y;
-          return;
-          break;
+	  if (player_shots[player_pos.x][player_pos.y] == UNTOUCHED) {
+	    *x = player_pos.x;
+	    *y = player_pos.y;
+	    return;
+	  } else {
+            move(playery, playerx);
+	  }
           break;
                 
         }
@@ -252,12 +317,12 @@ void display_boards(void)
 
   status_win = newwin(stat_height, stat_width, starty+13, startx-20);
 
-  create_grid(players_grid);
+  create_grid(players_grid, Shipset);
 
   clear();
   refresh();
 
-  mvprintw(starty-1, startx-15, "Your ships");
+  mvprintw(starty-1, startx-15, global_user_name);
   mvwprintw(opponent_win, 1,1,"  A B C D E F G H I J");
   wattron(opponent_win,COLOR_PAIR(2));
   mvwprintw(opponent_win, 1, 1, " ");
@@ -271,14 +336,15 @@ void display_boards(void)
         wattron(opponent_win,COLOR_PAIR(2));
         mvwprintw(opponent_win, 2+h,3+f*2, "%c", t);
         wattroff(opponent_win,COLOR_PAIR(2));
+      } else {
+	mvwprintw(opponent_win, 2+h,3+f*2, "%c", t);
       }
-      else {mvwprintw(opponent_win, 2+h,3+f*2, "%c", t);}
       mvwprintw(opponent_win, 2+h,4+f*2, "|");
     }
   }
   wrefresh(opponent_win);
 
-  mvprintw(starty-1, startx+21, "Hit or miss ships");
+  mvprintw(starty-1, startx+21, peer_user_name);
   mvwprintw(player_win,1,1,"  A B C D E F G H I J");
 
   for (i=0;i<BOARD_SIZE;i++) {
@@ -300,6 +366,15 @@ void display_boards(void)
 void do_gameplay(const int sock, int fire)
 {
   int x,y,res,win_status=0;
+  char msg[100];
+
+  for (int i=0; i<BOARD_SIZE; ++i) {
+    for (int j=0; j<BOARD_SIZE; ++j) {
+      player_shots[i][j] = UNTOUCHED;
+      peer_shots[i][j] = UNTOUCHED;
+    }
+  }
+
 
   initShips();
   display_boards();
@@ -313,6 +388,8 @@ void do_gameplay(const int sock, int fire)
       fire = 0;
       return_cords(&x, &y);
       res = do_fire(sock, x, y);
+
+
       place_hit_or_mis(player_win,res, x, y);
       switch (res) {
       case 0:
@@ -341,6 +418,8 @@ void do_gameplay(const int sock, int fire)
       mvwprintw(status_win,1,1,"Waiting for other player to fire...");
       wrefresh(status_win);
       res = do_receive(sock);
+
+
       refresh();
       if (res == 0) {
         //wclear(status_win);
@@ -348,7 +427,7 @@ void do_gameplay(const int sock, int fire)
         //mvwprintw(status_win,5,1,"It's your turn!");
         wrefresh(status_win);
       } else if (res < 0) { //negative res indicates sunken ship
-        sh = getShipById(-1*res);
+        sh = getShipById(-1*res); /* what a hack... */
         //wclear(status_win);
         mvwprintw(status_win,2,1,"They sunk your %s!               ", sh.name);
         //mvwprintw(status_win,5,1,"It's your turn!");
@@ -366,11 +445,12 @@ void do_gameplay(const int sock, int fire)
       refresh();
     }
   } while(fire > -1);
-  clear();
-  refresh();
-  printw("Game over, %s, you %s!\nthanks for playing!!!\n\npress any key to continue...\n", global_user_name, (win_status) ? "win" : "lose");
-  refresh();
+
+  sprintf(msg, "Game over! You %s!\nPress any key to view battlefields.", win_status ? "won" : "lost");
+  show_message_box(msg);
   getch();
+  exchange_shipsets(sock);
+  show_battlefields();
 }
 
 
@@ -493,20 +573,26 @@ void show_message_box(char const *const string)
   int height = 5;
   int leftoffset = 1;
   int largest_line_length = 0, prev_newline_index = 0;
+  char msg[100];
 
   /* Count the newlines to determine any extra height we'll need to add */
-  for (int i=0; i<strlen(string); ++i) {
-    if (string[i] == '\n') {
+  for (int i=0; i<strlen(string)+1; ++i) {
+    if (string[i] == '\n' || string[i] == '\0') {
       largest_line_length = i-prev_newline_index > largest_line_length
 	? i-prev_newline_index
 	: largest_line_length;
       prev_newline_index = i;
-      height++;
+      if (string[i] == '\n')
+	height++;
+      sprintf(msg, "found newline or null at %d. now height is %d largest line is %d\n", i, height, largest_line_length);
+      write_to_log(msg);
     }
   }
   largest_line_length = largest_line_length == 0
     ? strlen(string)
     : largest_line_length;
+  sprintf(msg, "At the end, now height is %d largest line is %d\n", height, largest_line_length);
+  write_to_log(msg);
 
   width = largest_line_length + 6;
 

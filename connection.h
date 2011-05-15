@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include "Btypes.h"
 
-void init_game(const int);
+void init_game();
 int do_fire(const int, const int, const int);
 int do_receive(const int);
 int check_hit(const BMesg *);
@@ -15,9 +15,12 @@ int check_game_over();
 void send_hit(const int, const char *);
 void send_miss(const int);
 void get_response(const int, BMesg *);
-void exchange_names(const int, const int);
-void get_user_name(const int);
+void exchange_names(const int);
+void get_peer_user_name(const int);
 void send_user_name(const int);
+void exchange_shipsets(const int);
+void get_peer_shipset(const int);
+void send_shipset(const int);
 uint16_t get_battleship_port();
 uint8_t recv_byte(const int);
 void send_byte(const int, uint8_t);
