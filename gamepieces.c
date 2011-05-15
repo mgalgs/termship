@@ -134,7 +134,7 @@ void setAsHit(int ship, int slot)
   else x += slot;
  
   Shipset[ship].slots[slot] = 1; //set slot as hit
-  place_hit_or_mis(opponent_win, -1, x, y); 
+  place_hit_or_mis(opponent_win, -1, x, y, true); 
   //set as sunk if relevant
   for (i=0; i<Shipset[ship].size; i++) {
     if (Shipset[ship].slots[i] == 0) {/*not hit*/
@@ -251,13 +251,13 @@ bool is_there_a_ship_here(Ship ships[], int x, int y)
 {
   //check for a hit:
   for (int i=0; i<NUM_SHIPS; i++) { //for each ship
-    for (int j=0; j<Shipset[i].size; j++) { //for each "slot" on the ship
-      if (Shipset[i].direction == 1) { /*ship placed vertically*/
-	if ( (Shipset[i].x == x) && (Shipset[i].y+j == y) ) {
+    for (int j=0; j<ships[i].size; j++) { //for each "slot" on the ship
+      if (ships[i].direction == 1) { /*ship placed vertically*/
+	if ( (ships[i].x == x) && (ships[i].y+j == y) ) {
 	  return true;
 	}
       } else { /*ship placed horizontally*/
-	if ( (Shipset[i].x+j == x) && (Shipset[i].y == y) ) {
+	if ( (ships[i].x+j == x) && (ships[i].y == y) ) {
 	  return true;
 	}
       }

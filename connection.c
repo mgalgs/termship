@@ -26,6 +26,7 @@
 #define MAX_NAME 100
 
 extern Ship Shipset[];
+extern Ship PeerShipset[];
 extern WINDOW *opponent_win;
 extern char global_user_name[];
 extern char peer_user_name[];
@@ -293,7 +294,7 @@ int check_hit(const BMesg *buf)
     }
   }
 
-  place_hit_or_mis(opponent_win,0,x,y);
+  place_hit_or_mis(opponent_win,0,x,y,true);
 
   //if we haven't returned until now then there was no hit
   return 0;
@@ -422,9 +423,9 @@ void exchange_shipsets(const int sock)
 void get_peer_shipset(const int sock)
 {
   for (int i=0; i<NUM_SHIPS; ++i) {
-    Shipset[i].x = recv_byte(sock);
-    Shipset[i].y = recv_byte(sock);
-    Shipset[i].direction = recv_byte(sock);
+    PeerShipset[i].x = recv_byte(sock);
+    PeerShipset[i].y = recv_byte(sock);
+    PeerShipset[i].direction = recv_byte(sock);
   }
 }
 

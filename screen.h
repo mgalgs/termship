@@ -10,7 +10,7 @@ struct player_pos_
 }; 
 
 
-void place_hit_or_mis(WINDOW *, int, int, int);
+void place_hit_or_mis(WINDOW *, int, int, int, bool);
 
 /**
  * Displays the current battlefield to the user.

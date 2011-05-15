@@ -35,7 +35,7 @@ WINDOW *player_win;
 WINDOW *opponent_win;
 WINDOW *status_win;
 
-void place_hit_or_mis(WINDOW * win,int mesg, int x, int y)
+void place_hit_or_mis(WINDOW * win,int mesg, int x, int y, bool was_peer_shot)
 {
   //-2game -1 hit sink 1hit  0miss
   //deal with hits first
@@ -45,19 +45,19 @@ void place_hit_or_mis(WINDOW * win,int mesg, int x, int y)
     mvwprintw(win, y+2, x*2+3,"#");
     wattroff(win,COLOR_PAIR(4));
     wrefresh(win);
-    if (win == player_win)
-      player_shots[x][y] = HIT;
-    else
+    if (was_peer_shot)
       peer_shots[x][y] = HIT;
+    else
+      player_shots[x][y] = HIT;
   } else { // miss
     wattron(win,COLOR_PAIR(3));
     mvwprintw(win, y+2, x*2+3,"@");
     wattroff(win,COLOR_PAIR(3));
     wrefresh(win);
-    if (win == player_win)
-      player_shots[x][y] = MISS;
-    else
+    if (was_peer_shot)
       peer_shots[x][y] = MISS;
+    else
+      player_shots[x][y] = MISS;
   }
 }
 
@@ -66,6 +66,30 @@ void place_hit_or_mis(WINDOW * win,int mesg, int x, int y)
  */
 void show_battlefields()
 {
+  /* dump battlefields: */
+  if (user_mode == SERVER_MODE) {
+    write_to_log("player_shots:\n");
+    for (int i=0; i<BOARD_SIZE; ++i) {
+      for (int j=0; j<BOARD_SIZE; ++j) {
+	char msg[10];
+	sprintf(msg, "%c", player_shots[i][j] == HIT ? 'h'
+		: (player_shots[i][j] == MISS ? 'm' : 'u') );
+	write_to_log(msg);
+      }
+      write_to_log("\n");
+    }
+    write_to_log("peer_shots:\n");
+    for (int i=0; i<BOARD_SIZE; ++i) {
+      for (int j=0; j<BOARD_SIZE; ++j) {
+	char msg[10];
+	sprintf(msg, "%c", peer_shots[i][j] == HIT ? 'h'
+		: (peer_shots[i][j] == MISS ? 'm' : 'u') );
+	write_to_log(msg);
+      }
+      write_to_log("\n");
+    }
+  }
+
   noecho();
   bool checking_opponent = true;
   bool cont = true;
@@ -76,36 +100,28 @@ void show_battlefields()
       for (int x=0; x<BOARD_SIZE; ++x) {
 	if (checking_opponent) { /* checking opponent */
 	  if (is_there_a_ship_here(PeerShipset, x, y)) {
-	    field[ind] = '*';
-	  }
-	  if (peer_shots[x][y] == HIT) {
-	    field[ind++] = '#';
-	  } else if (peer_shots[x][y] == MISS) {
-	    field[ind++] = '@';
-	  } else if(field[ind] != '*') {
-	    field[ind++] = '_';
+	    field[ind++] = player_shots[x][y] == HIT ? '#' : '*';
+	  } else {
+	    field[ind++] = player_shots[x][y] == MISS ? '@' : '_';
 	  }
 	} else {		/* checking user */
 	  if (is_there_a_ship_here(Shipset, x, y)) {
-	    field[ind] = '*';
-	  }
-	  if (player_shots[x][y] == HIT) {
-	    field[ind++] = '#';
-	  } else if (player_shots[x][y] == MISS) {
-	    field[ind++] = '@';
-	  } else if(field[ind] != '*') {
-	    field[ind++] = '_';
+	    field[ind++] = peer_shots[x][y] == HIT ? '#' : '*';
+	  } else {
+	    field[ind++] = peer_shots[x][y] == MISS ? '@' : '_';
 	  }
 	} /* eo checking_opponent */
 	field[ind++] = '|';
       }
       field[ind++] = '\n';
     }
-    sprintf(&(field[ind]), "Currently displaying %s%s battlefield.\n"
-	    "Press any key to toggle battlefields.\n"
+    sprintf(&(field[ind]), "Currently displaying %s%s territory.\n"
+	    "Press any key to see %s%s.\n"
 	    "Press enter to continue",
 	    checking_opponent ? peer_user_name : "your",
-	    checking_opponent ? "'s" : "");
+	    checking_opponent ? "'s" : "",
+	    checking_opponent ? "yours" : peer_user_name,
+	    checking_opponent ? "" : "'s");
     show_message_box(field);
 
     int ch = getch();
@@ -390,7 +406,7 @@ void do_gameplay(const int sock, int fire)
       res = do_fire(sock, x, y);
 
 
-      place_hit_or_mis(player_win,res, x, y);
+      place_hit_or_mis(player_win,res, x, y, false);
       switch (res) {
       case 0:
         mvwprintw(status_win,2,1,"Missed!                                    ");
