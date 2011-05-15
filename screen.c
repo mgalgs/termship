@@ -82,7 +82,7 @@ void show_battlefields()
 	    field[ind++] = '#';
 	  } else if (peer_shots[x][y] == MISS) {
 	    field[ind++] = '@';
-	  } else {
+	  } else if(field[ind] != '*') {
 	    field[ind++] = '_';
 	  }
 	} else {		/* checking user */
@@ -93,7 +93,7 @@ void show_battlefields()
 	    field[ind++] = '#';
 	  } else if (player_shots[x][y] == MISS) {
 	    field[ind++] = '@';
-	  } else {
+	  } else if(field[ind] != '*') {
 	    field[ind++] = '_';
 	  }
 	} /* eo checking_opponent */
