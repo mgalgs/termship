@@ -1,3 +1,4 @@
+/* -*- c-basic-offset: 2 -*- */
 /**
  * This file contains all the ui routines.
  */
@@ -71,20 +72,20 @@ void show_battlefields()
     write_to_log("player_shots:\n");
     for (int i=0; i<BOARD_SIZE; ++i) {
       for (int j=0; j<BOARD_SIZE; ++j) {
-	char msg[10];
-	sprintf(msg, "%c", player_shots[i][j] == HIT ? 'h'
-		: (player_shots[i][j] == MISS ? 'm' : 'u') );
-	write_to_log(msg);
+    char msg[10];
+    sprintf(msg, "%c", player_shots[i][j] == HIT ? 'h'
+        : (player_shots[i][j] == MISS ? 'm' : 'u') );
+    write_to_log(msg);
       }
       write_to_log("\n");
     }
     write_to_log("peer_shots:\n");
     for (int i=0; i<BOARD_SIZE; ++i) {
       for (int j=0; j<BOARD_SIZE; ++j) {
-	char msg[10];
-	sprintf(msg, "%c", peer_shots[i][j] == HIT ? 'h'
-		: (peer_shots[i][j] == MISS ? 'm' : 'u') );
-	write_to_log(msg);
+    char msg[10];
+    sprintf(msg, "%c", peer_shots[i][j] == HIT ? 'h'
+        : (peer_shots[i][j] == MISS ? 'm' : 'u') );
+    write_to_log(msg);
       }
       write_to_log("\n");
     }
@@ -98,30 +99,30 @@ void show_battlefields()
     int ind=0;
     for (int y=0; y<BOARD_SIZE; ++y) {
       for (int x=0; x<BOARD_SIZE; ++x) {
-	if (checking_opponent) { /* checking opponent */
-	  if (is_there_a_ship_here(PeerShipset, x, y)) {
-	    field[ind++] = player_shots[x][y] == HIT ? '#' : '*';
-	  } else {
-	    field[ind++] = player_shots[x][y] == MISS ? '@' : '_';
-	  }
-	} else {		/* checking user */
-	  if (is_there_a_ship_here(Shipset, x, y)) {
-	    field[ind++] = peer_shots[x][y] == HIT ? '#' : '*';
-	  } else {
-	    field[ind++] = peer_shots[x][y] == MISS ? '@' : '_';
-	  }
-	} /* eo checking_opponent */
-	field[ind++] = '|';
+    if (checking_opponent) { /* checking opponent */
+      if (is_there_a_ship_here(PeerShipset, x, y)) {
+        field[ind++] = player_shots[x][y] == HIT ? '#' : '*';
+      } else {
+        field[ind++] = player_shots[x][y] == MISS ? '@' : '_';
+      }
+    } else {        /* checking user */
+      if (is_there_a_ship_here(Shipset, x, y)) {
+        field[ind++] = peer_shots[x][y] == HIT ? '#' : '*';
+      } else {
+        field[ind++] = peer_shots[x][y] == MISS ? '@' : '_';
+      }
+    } /* eo checking_opponent */
+    field[ind++] = '|';
       }
       field[ind++] = '\n';
     }
     sprintf(&(field[ind]), "Currently displaying %s%s territory.\n"
-	    "Press any key to see %s%s.\n"
-	    "Press enter to continue",
-	    checking_opponent ? peer_user_name : "your",
-	    checking_opponent ? "'s" : "",
-	    checking_opponent ? "yours" : peer_user_name,
-	    checking_opponent ? "" : "'s");
+        "Press any key to see %s%s.\n"
+        "Press enter to continue",
+        checking_opponent ? peer_user_name : "your",
+        checking_opponent ? "'s" : "",
+        checking_opponent ? "yours" : peer_user_name,
+        checking_opponent ? "" : "'s");
     show_message_box(field);
 
     int ch = getch();
@@ -141,12 +142,6 @@ void show_battlefields()
  */
 void main_menu()
 {
-  Player *player;
-  WINDOW *panel_win;
-  PANEL *the_panel;
-  int panel_height=6,panel_width=50;
-  char msg[200];
-
 
 
   MENU *my_menu;
@@ -208,22 +203,21 @@ void main_menu()
   for (int i=0; i<n_choices-1; ++i) {
     free_item(my_items[i]);
   }
+  free(my_items);
   unpost_menu(my_menu);
   free_menu(my_menu);
 
   if (0==strcmp(selected_name, "Create")) {
     user_mode = SERVER_MODE;
     get_text_string_from_centered_panel("Enter your name",
-					global_user_name,
-					MAX_NAME);
-    player = create_player(global_user_name, user_mode);
+                    global_user_name,
+                    MAX_NAME);
     init_game(user_mode);
   } else if (0==strcmp(selected_name, "Join")) {
     user_mode = CLIENT_MODE;
     get_text_string_from_centered_panel("Enter your name",
-					global_user_name,
-					MAX_NAME);
-    player = create_player(global_user_name, user_mode);
+                    global_user_name,
+                    MAX_NAME);
     init_game();
   }
 
@@ -234,7 +228,6 @@ void return_cords(int * x, int * y)
 {
   struct player_pos_ player_pos;
   int startx, starty,height, width;
-  char msg[100];
   
   player_pos.x = 0;
   player_pos.y = 0;
@@ -255,7 +248,7 @@ void return_cords(int * x, int * y)
     {
       switch(ch) 
         {
-	case KEY_LEFT:
+    case KEY_LEFT:
             if (playerx > 3+startx+20) {
               playerx -=2;
               player_pos.x--;
@@ -288,13 +281,13 @@ void return_cords(int * x, int * y)
           }
         case 10:
         case KEY_ENTER:
-	  if (player_shots[player_pos.x][player_pos.y] == UNTOUCHED) {
-	    *x = player_pos.x;
-	    *y = player_pos.y;
-	    return;
-	  } else {
+      if (player_shots[player_pos.x][player_pos.y] == UNTOUCHED) {
+        *x = player_pos.x;
+        *y = player_pos.y;
+        return;
+      } else {
             move(playery, playerx);
-	  }
+      }
           break;
                 
         }
@@ -308,7 +301,6 @@ void display_boards(void)
 
   char players_grid[BOARD_SIZE][BOARD_SIZE];
 
-  int x,y,res;
   int f, h = 0;
   char t;
   int i;
@@ -353,7 +345,7 @@ void display_boards(void)
         mvwprintw(opponent_win, 2+h,3+f*2, "%c", t);
         wattroff(opponent_win,COLOR_PAIR(2));
       } else {
-	mvwprintw(opponent_win, 2+h,3+f*2, "%c", t);
+    mvwprintw(opponent_win, 2+h,3+f*2, "%c", t);
       }
       mvwprintw(opponent_win, 2+h,4+f*2, "|");
     }
@@ -489,60 +481,69 @@ void title_screen()
 
   print_picture(stdscr, picture);
 
-  int numsquiggles = 8;
-  int numreps = 2;
-  int framespeed = 60000;
+  /* int numsquiggles = 8; */
+  /* int numreps = 2; */
+  /* int framespeed = 60000; */
   /* do a little "animation" */
-  for (int i=0; i<numreps; ++i) {
-    /* pushing out */
-    for (int j=0; j<numsquiggles; ++j) {
-      char msg[100];
-      int s=0;
-      for (int k=0; k<j+1; ++k) {
-	msg[s++] = '~';
-      }
-      msg[s++]=' ';
-      msg[s++]='t';
-      msg[s++]='e';
-      msg[s++]='r';
-      msg[s++]='m';
-      msg[s++]='s';
-      msg[s++]='h';
-      msg[s++]='i';
-      msg[s++]='p';
-      msg[s++]=' ';
-      for (int k=0; k<j+1; ++k) {
-	msg[s++] = '~';
-      }
-      msg[s++] = '\0';
-      show_message_box(msg);
-      usleep(framespeed);
-    }
-    /* pulling in */
-    for (int j=numsquiggles; j>0; --j) {
-      char msg[100];
-      int s=0;
-      for (int k=0; k<j+1; ++k) {
-	msg[s++] = '~';
-      }
-      msg[s++]=' ';
-      msg[s++]='t';
-      msg[s++]='e';
-      msg[s++]='r';
-      msg[s++]='m';
-      msg[s++]='s';
-      msg[s++]='h';
-      msg[s++]='i';
-      msg[s++]='p';
-      msg[s++]=' ';
-      for (int k=0; k<j+1; ++k) {
-	msg[s++] = '~';
-      }
-      msg[s++] = '\0';
-      show_message_box(msg);
-      usleep(framespeed);
-    }
-  }
+  /* for (int i=0; i<numreps; ++i) { */
+  /*   /\* pushing out *\/ */
+  /*   for (int j=0; j<numsquiggles; ++j) { */
+  /*     char msg[100]; */
+  /*     int s=0; */
+  /*     for (int k=0; k<j+1; ++k) { */
+  /*    msg[s++] = '~'; */
+  /*     } */
+  /*     msg[s++]=' '; */
+  /*     msg[s++]='t'; */
+  /*     msg[s++]='e'; */
+  /*     msg[s++]='r'; */
+  /*     msg[s++]='m'; */
+  /*     msg[s++]='s'; */
+  /*     msg[s++]='h'; */
+  /*     msg[s++]='i'; */
+  /*     msg[s++]='p'; */
+  /*     msg[s++]=' '; */
+  /*     for (int k=0; k<j+1; ++k) { */
+  /*    msg[s++] = '~'; */
+  /*     } */
+  /*     msg[s++] = '\0'; */
+  /*     show_message_box(msg); */
+  /*     usleep(framespeed); */
+  /*   } */
+  /*   /\* pulling in *\/ */
+  /*   for (int j=numsquiggles; j>0; --j) { */
+  /*     char msg[100]; */
+  /*     int s=0; */
+  /*     for (int k=0; k<j+1; ++k) { */
+  /*    msg[s++] = '~'; */
+  /*     } */
+  /*     msg[s++]=' '; */
+  /*     msg[s++]='t'; */
+  /*     msg[s++]='e'; */
+  /*     msg[s++]='r'; */
+  /*     msg[s++]='m'; */
+  /*     msg[s++]='s'; */
+  /*     msg[s++]='h'; */
+  /*     msg[s++]='i'; */
+  /*     msg[s++]='p'; */
+  /*     msg[s++]=' '; */
+  /*     for (int k=0; k<j+1; ++k) { */
+  /*    msg[s++] = '~'; */
+  /*     } */
+  /*     msg[s++] = '\0'; */
+  /*     show_message_box(msg); */
+  /*     usleep(framespeed); */
+  /*   } */
+  /* } */
+
+
+
+  /* Test an animation: */
+  /* Animation *anim1 = create_animation("test1.txt"); */
+  /* play_animation(anim1, true); */
+  Animation *underwater_explosion = create_animation("underwater_explosion.txt");
+  play_animation(underwater_explosion, true);
+  destroy_animation(underwater_explosion);
 }
 
 
@@ -585,30 +586,44 @@ static int last_message_box_height=0;
  */
 void show_message_box(char const *const string)
 {
+  show_message_box_win(&message_box_win, &message_box_panel,
+               string, &last_message_box_width, &last_message_box_height);
+}
+
+/**
+ * Shows a message box in specific window the middle of the
+ * screen. You should make sure you're always passing in the same
+ * reference to last_box_width and last_box_height associated with
+ * this window.
+ */
+void show_message_box_win(WINDOW **win, PANEL **pan, char const *const string,
+              int *last_box_width, int *last_box_height)
+{
   int width;
   int height = 5;
   int leftoffset = 1;
   int largest_line_length = 0, prev_newline_index = 0;
-  char msg[100];
+  char msg[500];
+  (void)msg; /*compiler warnings*/
 
   /* Count the newlines to determine any extra height we'll need to add */
   for (int i=0; i<strlen(string)+1; ++i) {
     if (string[i] == '\n' || string[i] == '\0') {
       largest_line_length = i-prev_newline_index > largest_line_length
-	? i-prev_newline_index
-	: largest_line_length;
+    ? i-prev_newline_index
+    : largest_line_length;
       prev_newline_index = i;
       if (string[i] == '\n')
-	height++;
-      sprintf(msg, "found newline or null at %d. now height is %d largest line is %d\n", i, height, largest_line_length);
-      write_to_log(msg);
+    height++;
+      /* sprintf(msg, "found newline or null at %d. now height is %d largest line is %d\n", i, height, largest_line_length); */
+      /* write_to_log(msg); */
     }
   }
   largest_line_length = largest_line_length == 0
     ? strlen(string)
     : largest_line_length;
-  sprintf(msg, "At the end, now height is %d largest line is %d\n", height, largest_line_length);
-  write_to_log(msg);
+  /* sprintf(msg, "At the end, now height is %d largest line is %d\n", height, largest_line_length); */
+  /* write_to_log(msg); */
 
   width = largest_line_length + 6;
 
@@ -616,29 +631,37 @@ void show_message_box(char const *const string)
   /* if there's an existing message box up and this string is a
      different length than the last one, we need to recompute the
      width, so we just hide the message box. */
-  if (last_message_box_width != width || last_message_box_height != height)
-    hide_message_box();
+  if (*last_box_width != width || *last_box_height != height) {
+    sprintf(msg, "implicit hide of the message box because %d != %d || %d != %d\n",
+        *last_box_width, width, *last_box_height, height);
+    write_to_log(msg);
+    hide_message_box_win(win, pan);
+  }
 
-  if (message_box_win == NULL) {
-    message_box_win = newwin(height, width,
-			     (LINES-height)/2,
-			     (COLS-width)/2);
+  if (*win == NULL) {
+    *win = newwin(height, width,
+                 (LINES-height)/2,
+                 (COLS-width)/2);
+    sprintf(msg, "created new win at *win %p\n", *win);
+    write_to_log(msg);
   }
-  if (message_box_panel == NULL) {
-    message_box_panel = new_panel(message_box_win);
+  if (*pan == NULL) {
+    *pan = new_panel(*win);
+    sprintf(msg, "created new *pan at %p\n", *pan);
+    write_to_log(msg);
   }
-  wattron(message_box_win, BLUE_ON_BLACK);
-  box(message_box_win, 0, 0);
-  wattroff(message_box_win, BLUE_ON_BLACK);
+  wattron(*win, BLUE_ON_BLACK);
+  box(*win, 0, 0);
+  wattroff(*win, BLUE_ON_BLACK);
   /* border(186, 186, 205, 205, */
-  /* 	 201, 187, 200, 188); */
+  /*     201, 187, 200, 188); */
   /* border(ls, rs, chtype ts, chtype bs, */
-  /* 	 chtype tl, chtype tr, chtype bl, chtype br); */
+  /*     chtype tl, chtype tr, chtype bl, chtype br); */
 
   int current_y = 1;
-  wattron(message_box_win, WHITE_ON_RED);
+  wattron(*win, WHITE_ON_RED);
   for (int i=0; i<width-2; ++i)
-    mvwprintw(message_box_win, current_y, i+1, "-"); /* fill above the text */
+    mvwprintw(*win, current_y, i+1, "-"); /* fill above the text */
   current_y++;
 
 
@@ -648,60 +671,75 @@ void show_message_box(char const *const string)
   strcpy(our_string, string);
   if (strchr(string, '\n') != NULL) { /* we have newlines */
     for (char *next_tok = strtok(our_string, "\n");
-	 next_tok != NULL;
-	 next_tok = strtok(NULL, "\n")) {
-      wattron(message_box_win, WHITE_ON_RED);
-      mvwhline(message_box_win, current_y, 1, ' ', width-2);
-      print_in_middle(message_box_win, current_y,
-		      leftoffset, width-1, next_tok,
-		      WHITE_ON_RED);
+     next_tok != NULL;
+     next_tok = strtok(NULL, "\n")) {
+      wattron(*win, WHITE_ON_RED);
+      mvwhline(*win, current_y, 1, ' ', width-2);
+      print_in_middle(*win, current_y,
+              leftoffset, width-1, next_tok,
+              WHITE_ON_RED);
       current_y++;
     }
   } else {
-    wattron(message_box_win, WHITE_ON_RED);
-    mvwhline(message_box_win, current_y, 1, ' ', width-2);
-    print_in_middle(message_box_win, current_y, leftoffset, width-1, string, WHITE_ON_RED);
+    wattron(*win, WHITE_ON_RED);
+    mvwhline(*win, current_y, 1, ' ', width-2);
+    print_in_middle(*win, current_y, leftoffset, width-1, string, WHITE_ON_RED);
     current_y++;
   }
 
-  wattron(message_box_win, WHITE_ON_RED);
+  wattron(*win, WHITE_ON_RED);
   for (int i=0; i<width-2; ++i)
-    mvwprintw(message_box_win, current_y, i+1, "-"); /* fill below the text */
+    mvwprintw(*win, current_y, i+1, "-"); /* fill below the text */
 
-  wattroff(message_box_win, WHITE_ON_RED);
+  wattroff(*win, WHITE_ON_RED);
 
   free(our_string);
 
-  top_panel(message_box_panel);
+  top_panel(*pan);
   update_panels();
   doupdate();
 
-  last_message_box_width = width;
-  last_message_box_height = height;
+  *last_box_width = width;
+  *last_box_height = height;
 }
 
 /**
- * Hides the global message box
+ * Hides the message box
  */
 void hide_message_box()
 {
-  if (message_box_panel != NULL) {
-    del_panel(message_box_panel);
-    message_box_panel = NULL;
+  hide_message_box_win(&message_box_win, &message_box_panel);
+}
+
+/**
+ * Hides a specific message box
+ */
+void hide_message_box_win(WINDOW **win, PANEL **pan)
+{
+  char msg[500];
+  wclear(*win);
+  if (*pan != NULL) {
+    sprintf(msg, "deleting *pan at %p\n", *pan);
+    write_to_log(msg);
+    del_panel(*pan);
+    *pan = NULL;
     update_panels();
   }
-  if (message_box_win != NULL) {
-    delwin(message_box_win);
-    message_box_win = NULL;
-    doupdate();
+  wrefresh(*win);
+  if (*win != NULL) {
+    sprintf(msg, "deleting *win at %p\n", *win);
+    write_to_log(msg);
+    delwin(*win);
+    *win = NULL;
+    /* doupdate(); */
   }
+  refresh();
 }
 
 
 int get_picture_width(char *picture[])
 {
   int maxlen=0;
-  char msg[50];
   for (int i=0; picture[i]!=NULL; ++i) {
     int len = strlen(picture[i]);
     maxlen = len > maxlen ? len : maxlen;
@@ -740,8 +778,8 @@ void get_text_string_from_centered_panel(char const *const prompt, char *dest, i
                      (COLS-panel_width)/2);
   box(panel_win, 0, 0);
   print_in_middle(panel_win, 1,
-		  0, panel_width,
-		  prompt, COLOR_PAIR(6));
+          0, panel_width,
+          prompt, COLOR_PAIR(6));
   wattron(panel_win, COLOR_PAIR(5));
   mvwhline(panel_win, 3, 2, ' ', panel_width-4);
   curs_set(1); // make cursor visible
@@ -763,7 +801,161 @@ void get_text_string_from_centered_panel(char const *const prompt, char *dest, i
   doupdate();
 }
 
+
+/**
+ * Constructs and returns a new Animation object. This doesn't load
+ * the animation. That will be done at play time or you can call
+ * load_animation to do it manually. The animation should be free'd by
+ * the user.
+ */
+Animation *create_animation(char *loadFile)
+{
+  Animation *anim = (Animation *)malloc(sizeof(Animation));
+  anim->isLoaded = false;
+  anim->loadFile = (char *) malloc(sizeof(char) * MAX_FILE_LEAF_NAME);
+  strcpy(anim->loadFile, loadFile);
+  return anim;
+}
+
+void destroy_animation(Animation *anim)
+{
+  for(int i=0; i < anim->numFrames; ++i) {
+    free(anim->frames[i]);
+  }
+  free(anim->frames);
+  free(anim->loadFile);
+  free(anim);
+}
+
+
+/**
+ * Loads up the animation. Make sure you set the `loadFile` attribute
+ * of the Animation before calling this function.
+ */
+void load_animation(Animation *anim)
+{
+  FILE *fp;
+  char msg[500], loadFileFullPath[MAX_FILE_FULL_PATH];
+  char *line, *thisFrame;
+  size_t len=0;
+  ssize_t read;
+
+  sprintf(loadFileFullPath, "%s/animations/%s", xstr(TERMSHIP_PATH), anim->loadFile);
+  sprintf(msg, "Loading animation file from %s...\n", loadFileFullPath);
+  write_to_log(msg);
+
+  fp = fopen(loadFileFullPath, "r");
+  if (fp == NULL) {
+    cleanup_ncurses();
+    printf("couldn't open %s for reading...\n", loadFileFullPath);
+    exit(EXIT_FAILURE);
+  }
+
+  /*** read the header lines: ***/
+  /* First is the size (in lines) of each of the frames we're about to
+     read */
+  line = NULL;
+  read = getline(&line, &len, fp);
+  sscanf(line, "%d\n", &(anim->height));
+  free(line);
+  sprintf(msg, "%s has height %d\n", loadFileFullPath,
+      anim->height);
+  write_to_log(msg);
+  /* Next is the total number of frames */
+  line = NULL;
+  read = getline(&line, &len, fp);
+  sscanf(line, "%d\n", &(anim->numFrames));
+  free(line);
+  sprintf(msg, "%s has %d total frames\n", loadFileFullPath, anim->numFrames);
+  write_to_log(msg);
+  /* Next is the desired frame rate: */
+  line = NULL;
+  read = getline(&line, &len, fp);
+  sscanf(line, "%d\n", &(anim->fps));
+  free(line);
+  sprintf(msg, "%s will run at %d fps\n", loadFileFullPath, anim->fps);
+  write_to_log(msg);
+
+  (void)read; /*compiler warnings*/
+
+  /* Allocate space for the animation (the frames, not the actual lines quite yet): */
+  anim->frames = (char **) malloc(sizeof(char *) * anim->numFrames);
+  thisFrame = (char *) malloc(sizeof(char) * anim->height * MAX_FRAME_WIDTH);
+
+  int max_width = 0;
+  for (int i=0; i < anim->numFrames; ++i) {
+    bool last_char_was_newline = false;
+    int chars_read;
+    for (chars_read=0; ; ++chars_read) {
+      int ch = fgetc(fp);
+      /* sprintf(msg, "[%d] => %c\n", chars_read, (char)ch); */
+      /* write_to_log(msg); */
+      thisFrame[chars_read] = ch;
+      if (ch == '\n') {
+        /* two newlines in a row. next frame. */
+        if (last_char_was_newline)
+          break;
+        last_char_was_newline = true;
+      } else {
+        last_char_was_newline = false;
+      }
+    }
+    thisFrame[chars_read-1] = '\0'; /* overwriting the final newline */
+    anim->frames[i] = (char *) malloc((sizeof(char) * chars_read)); /* don't need +1 because we truncated the last newline */
+    strcpy(anim->frames[i], thisFrame);
+
+    max_width = MAX(chars_read, max_width);
+
+  } /*eo for each line*/
+
+  free(thisFrame);
+
+  anim->width = max_width;
+
+  anim->isLoaded = true;
+}
+
+/**
+ * Plays the specified animation. Loads it if necessary.
+ */
+void play_animation(Animation *anim, bool hold_at_end)
+{
+  static WINDOW *animation_window = NULL;
+  static PANEL  *animation_panel = NULL;
+  static int    anim_width;
+  static int    anim_height;
+  char msg[500];
+  (void)msg;
+  char *hold_message = "\n(Press any key to continue)";
+
+  if (!anim->isLoaded) load_animation(anim);
+
+  anim_width = anim->width;
+  anim_height = anim->height;
+
+  for (int i=0; i < anim->numFrames; ++i) {
+    show_message_box_win(&animation_window, &animation_panel,
+             anim->frames[i], &anim_width, &anim_height);
+
+    /* we assume the show_message_box_win takes 0 time */
+    usleep( (1/(float)anim->fps) * 1000000 );
+  }
+
+  if (hold_at_end) {
+    char *hold_frame = (char *) malloc(strlen(anim->frames[anim->numFrames-1]) + strlen(hold_message) + 1);
+    strcpy(hold_frame, anim->frames[anim->numFrames-1]);
+    strcat(hold_frame, hold_message);
+    show_message_box_win(&animation_window, &animation_panel,
+             hold_frame, &anim_width, &anim_height);
+    getch();
+    free(hold_frame);
+  }
+
+  hide_message_box_win(&animation_window, &animation_panel);
+}
+
+
 void cleanup_ncurses()
 {
-  endwin();			/* end curses mode */
+  endwin();         /* end curses mode */
 }

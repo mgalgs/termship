@@ -165,7 +165,7 @@ int do_fire(const int sock, const int x, const int y)
   BMesg *buf;
   int nbytes;
   buf = CreateBMesg(BFIRE, x, y);
-  if ( nbytes = send(sock, buf, sizeof(BMesg), 0) == -1) { /*send error*/
+  if ( (nbytes = send(sock, buf, sizeof(BMesg), 0)) == -1) { /*send error*/
     cleanup_ncurses();
     perror("send error");
     exit(EXIT_FAILURE);
@@ -203,7 +203,6 @@ int do_receive(const int sock)
 {
   int nbytes,res;
   BMesg *buf;
-  char *scratch;
   buf = CreateEmptyBMesg();
   if ( (nbytes = recv(sock, buf, MAX_MSG, 0) == -1) ) { /*recv error*/
     cleanup_ncurses();
@@ -331,7 +330,7 @@ void send_hit(const int sock, const char *code)
   buf->msg=BHIT;
   if (code)
     strcpy(buf->code, code);
-  if ( nbytes = send(sock, buf, sizeof(BMesg), 0) == -1) { /*send error*/
+  if ( (nbytes = send(sock, buf, sizeof(BMesg), 0)) == -1) { /*send error*/
     cleanup_ncurses();
     perror("send error");
     exit(EXIT_FAILURE);
@@ -347,7 +346,7 @@ void send_miss(const int sock)
   int nbytes;
   buf = CreateEmptyBMesg();
   buf->msg=BMISS;
-  if ( nbytes = send(sock, buf, sizeof(BMesg), 0) == -1) { /*send error*/
+  if ( (nbytes = send(sock, buf, sizeof(BMesg), 0)) == -1) { /*send error*/
     cleanup_ncurses();
     perror("send error");
     exit(EXIT_FAILURE);

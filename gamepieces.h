@@ -45,10 +45,6 @@ typedef struct Player_
 } Player;
 
 
-/**
- * Creates and returns an initialized player
- */
-Player *create_player(const char *, const int);
 
 void create_grid(char grid[BOARD_SIZE][BOARD_SIZE], Ship[]);
 

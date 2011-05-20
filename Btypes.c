@@ -36,7 +36,7 @@ BMesg *CreateBMesg(int MESS, int x, int y)
     exit(EXIT_FAILURE);
   }
   newBMesg->msg = MESS; //should be one of BFIRE, BHIT, BMISS (defined in Btypes.h)
-  sprintf(newBMesg->code, "%d,%d\0", x, y);
+  sprintf(newBMesg->code, "%d,%d", x, y);
   return newBMesg;
 }
 

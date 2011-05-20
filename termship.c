@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include "common.h"
 #include "screen.h"
 #include "connection.h"
 #include "gamepieces.h"
@@ -35,7 +36,10 @@ int main() {
   /* seed the random number generator */
   srand(time(NULL));
 
-  write_to_log("termship is starting!!!\n");
+  write_to_log("\n"
+	       "=======================\n"
+	       "termship is starting!!!\n"
+	       "=======================\n");
 
   initscr();			/* Initialize screen for curses mode */
   cbreak();

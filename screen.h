@@ -1,13 +1,65 @@
 #ifndef SCREEN_H
 #define SCREEN_H
 
+
 #include <ncurses.h>
+#include <panel.h>
+#include "common.h"
 
 struct player_pos_
 {
   int x;
   int y;
 }; 
+
+
+typedef struct Animation {
+  int numFrames;
+  int fps;
+  char **frames;
+  int width;
+  int height;
+
+  /* We load the frames from here. This should be present in the
+     ANIMATIONS_PATH. */
+  char *loadFile;
+  bool isLoaded;
+} Animation;
+
+/* This doesn't load it. Lazy loading happens when the animation is
+   played, or you can manually load it with load_animation. */
+Animation *create_animation(char *);
+
+/**
+ * The animation file should have the following headers before the
+ * actual frames begin:
+ *
+ * size (in lines) of each frame
+ * total number of frames
+ * desired frame rate (in fps)
+ *
+ * There should be one blank line between every frame. There should
+ * not be a blank line between the headers and the first frame.
+ *
+ *
+ # file format:
+ # =============
+ # height of each frame
+ # total frames
+ # frame rate
+ # <first frame data...>
+ # <one blank line>
+ # <second frame data...>
+ # ...
+ # <last frame data...>
+ # <newline on it's own line>
+
+ # Note, there's not a newline between the header lines and the first
+ # frame
+ */
+void load_animation(Animation *);
+void play_animation(Animation *, bool);
+void destroy_animation(Animation *);
 
 
 void place_hit_or_mis(WINDOW *, int, int, int, bool);
@@ -41,9 +93,15 @@ void title_screen();
  */
 
 /* Show global message box in middle of the screen */
-void show_message_box(char const *const string);
+void show_message_box(char const *const);
 /* Hide the global message box */
 void hide_message_box();
+
+/* These are the "manual" message box routines, in case you want to
+   pass in your own window */
+void hide_message_box_win(WINDOW **, PANEL **);
+void show_message_box_win(WINDOW **, PANEL **, char const *const, int *, int *);
+
 
 /**
  * get a string from a little pop-up dialog.

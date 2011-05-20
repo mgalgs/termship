@@ -1,3 +1,4 @@
+/* -*- c-basic-offset: 2 -*- */
 #include <string.h>
 #include <stdlib.h>
 #include <ncurses.h>
@@ -18,20 +19,20 @@ extern  WINDOW *status_win;
 
 //the ships: (this is globaly visible)
 Ship Shipset[] = {
-  "Aircraft Carrier",5,0,0,-1,0,HEALTHY,
-  "Battleship",4,0,0,-1,0,HEALTHY,
-  "Cruiser",3,0,0,-1,0,HEALTHY,
-  "Submarine",3,0,0,-1,0,HEALTHY,
-  "Destroyer",2,0,0,-1,0,HEALTHY
+  {"Aircraft Carrier",5,0,0,-1,0,HEALTHY},
+  {"Battleship",4,0,0,-1,0,HEALTHY},
+  {"Cruiser",3,0,0,-1,0,HEALTHY},
+  {"Submarine",3,0,0,-1,0,HEALTHY},
+  {"Destroyer",2,0,0,-1,0,HEALTHY}
 };
 
 
 Ship PeerShipset[] = {
-  "Aircraft Carrier",5,0,0,-1,0,HEALTHY,
-  "Battleship",4,0,0,-1,0,HEALTHY,
-  "Cruiser",3,0,0,-1,0,HEALTHY,
-  "Submarine",3,0,0,-1,0,HEALTHY,
-  "Destroyer",2,0,0,-1,0,HEALTHY
+  {"Aircraft Carrier",5,0,0,-1,0,HEALTHY},
+  {"Battleship",4,0,0,-1,0,HEALTHY},
+  {"Cruiser",3,0,0,-1,0,HEALTHY},
+  {"Submarine",3,0,0,-1,0,HEALTHY},
+  {"Destroyer",2,0,0,-1,0,HEALTHY}
 };
 
 
@@ -80,42 +81,6 @@ int randNum(const int high, const int low) {
   return ((rand() % (high - low +1)) + low);
 }
 
-
-/**
- * Helper function to create and return a board with ships initialized.
- */
-Board *create_board()
-{
-  Board *new_board;
-  if ( (new_board = (Board *) malloc(sizeof(Board))) == NULL ) {/*malloc error*/
-    cleanup_ncurses();
-    perror("malloc error");
-    exit(EXIT_FAILURE);
-  }
-  new_board->unsunk_cnt = 5;
-  if ( (new_board->ships = (Ship *) malloc(sizeof(Shipset))) == NULL ) {
-    cleanup_ncurses();
-    perror("malloc error");
-    exit(EXIT_FAILURE);
-  }
-  new_board->ships = Shipset;
-}
-
-/**
- * Creates and returns an initialized player
- */
-Player *create_player(const char *name, const int user_mode)
-{
-  Player *new_player;
-  if ( (new_player = (Player *) malloc(sizeof(Player))) == NULL ) { /*malloc error*/
-    cleanup_ncurses();
-    perror("malloc error");
-    exit(EXIT_FAILURE);
-  }
-  new_player->board = create_board();
-  new_player->name = "John";
-  new_player->user_mode = user_mode;
-}
 
 /**
  * Set given ship as hit on given slot.
