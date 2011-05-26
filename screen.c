@@ -401,16 +401,16 @@ void do_gameplay(const int sock, int fire)
         wrefresh(status_win);
         break;
       case 1:
-        /* mvwprintw(status_win,2,1,"You hit them!                              "); */
-        /* wrefresh(status_win); */
-	play_boom("You hit them!");
-	display_boards();
+        mvwprintw(status_win,2,1,"You hit them!                              ");
+        wrefresh(status_win);
+        /* play_boom("You hit them!"); */
+        /* display_boards(); */
         break;
       case -1:
-        /* mvwprintw(status_win,2,1,"You sunk them!                             "); */
-        /* wrefresh(status_win); */
-	play_boom("You sunk them!");
-	display_boards();
+        mvwprintw(status_win,2,1,"You sunk them!                             ");
+        wrefresh(status_win);
+        /* play_boom("You sunk them!"); */
+        /* display_boards(); */
         break;
       case -2:
         win_status = 1;
@@ -438,8 +438,8 @@ void do_gameplay(const int sock, int fire)
         sh = getShipById(-1*res); /* what a hack... */
         //wclear(status_win);
         mvwprintw(status_win,2,1,"They sunk your %s!               ", sh.name);
-	play_boom("They sunk you!");
-	display_boards();
+        /* play_boom("They sunk you!"); */
+        /* display_boards(); */
         //mvwprintw(status_win,5,1,"It's your turn!");
         wrefresh(status_win);
       } else if (res==100);//do nothing...the game is over
@@ -447,8 +447,8 @@ void do_gameplay(const int sock, int fire)
         sh = getShipById(res);
         //wclear(status_win);
         mvwprintw(status_win,2,1,"They hit your %s!                ", sh.name);
-	play_boom("They hit you!");
-	display_boards();
+        /* play_boom("They hit you!"); */
+        /* display_boards(); */
         //mvwprintw(status_win,5,1,"It's your turn!");
         wrefresh(status_win);
       }
