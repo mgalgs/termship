@@ -58,8 +58,10 @@ Animation *create_animation(char *);
  # frame
  */
 void load_animation(Animation *);
-void play_animation(Animation *, bool);
+void play_animation(Animation *, char *, bool, bool);
 void destroy_animation(Animation *);
+
+void play_boom(char *);
 
 
 void place_hit_or_mis(WINDOW *, int, int, int, bool);
@@ -119,6 +121,8 @@ void print_picture(WINDOW *, char *[]);
 
 /* clean up the screen for exiting: */
 void cleanup_ncurses();
+
+void kindly_die(char *);
 
 /* COLORS */
 #define YELLOW_ON_BLACK COLOR_PAIR(2)

@@ -168,10 +168,6 @@ void main_menu()
   noecho();
   title_screen();
 
-  show_message_box("Welcome to termship!\n(Press any key)");
-  getch();
-  hide_message_box();
-
   clear();
 
   my_items = (ITEM **)calloc(n_choices,sizeof(ITEM *));
@@ -541,9 +537,28 @@ void title_screen()
   /* Test an animation: */
   /* Animation *anim1 = create_animation("test1.txt"); */
   /* play_animation(anim1, true); */
-  Animation *underwater_explosion = create_animation("underwater_explosion.txt");
-  play_animation(underwater_explosion, true);
-  destroy_animation(underwater_explosion);
+  /* Animation *underwater_explosion = create_animation("underwater_explosion.txt"); */
+  /* play_animation(underwater_explosion, true); */
+  /* destroy_animation(underwater_explosion); */
+  Animation *montage = create_animation("opener.txt");
+  play_animation(montage, "Welcome to termship! (Press any key)", true, true);
+  destroy_animation(montage);
+
+  play_boom("PIZZA!");
+}
+
+void play_boom(char *msg)
+{
+  static Animation *boom = NULL;
+  if (boom == NULL)
+    boom = create_animation("boom.txt");
+
+  char *subtitle = (char *) malloc((sizeof(char)) * (strlen(msg) + strlen(" (Press any key)")) + 1 );
+  KINDLY_DIE_IF_NULL(subtitle);
+  strcpy(subtitle, msg);
+  strcat(subtitle, " (Press any key)");
+  play_animation(boom, subtitle, true, true);
+  free(subtitle);
 }
 
 
@@ -668,6 +683,7 @@ void show_message_box_win(WINDOW **win, PANEL **pan, char const *const string,
   /* Now for the printing. We need to split the string on newlines (if
      any) and print each of those separately */
   char *our_string = (char *) malloc(strlen(string)+1);
+  KINDLY_DIE_IF_NULL(our_string);
   strcpy(our_string, string);
   if (strchr(string, '\n') != NULL) { /* we have newlines */
     for (char *next_tok = strtok(our_string, "\n");
@@ -811,8 +827,10 @@ void get_text_string_from_centered_panel(char const *const prompt, char *dest, i
 Animation *create_animation(char *loadFile)
 {
   Animation *anim = (Animation *)malloc(sizeof(Animation));
+  KINDLY_DIE_IF_NULL(anim);
   anim->isLoaded = false;
   anim->loadFile = (char *) malloc(sizeof(char) * MAX_FILE_LEAF_NAME);
+  KINDLY_DIE_IF_NULL(anim->loadFile);
   strcpy(anim->loadFile, loadFile);
   return anim;
 }
@@ -880,7 +898,9 @@ void load_animation(Animation *anim)
 
   /* Allocate space for the animation (the frames, not the actual lines quite yet): */
   anim->frames = (char **) malloc(sizeof(char *) * anim->numFrames);
+  KINDLY_DIE_IF_NULL(anim->frames);
   thisFrame = (char *) malloc(sizeof(char) * anim->height * MAX_FRAME_WIDTH);
+  KINDLY_DIE_IF_NULL(thisFrame);
 
   int max_width = 0;
   for (int i=0; i < anim->numFrames; ++i) {
@@ -902,6 +922,7 @@ void load_animation(Animation *anim)
     }
     thisFrame[chars_read-1] = '\0'; /* overwriting the final newline */
     anim->frames[i] = (char *) malloc((sizeof(char) * chars_read)); /* don't need +1 because we truncated the last newline */
+    KINDLY_DIE_IF_NULL(anim->frames[i]);
     strcpy(anim->frames[i], thisFrame);
 
     max_width = MAX(chars_read, max_width);
@@ -918,7 +939,8 @@ void load_animation(Animation *anim)
 /**
  * Plays the specified animation. Loads it if necessary.
  */
-void play_animation(Animation *anim, bool hold_at_end)
+void play_animation
+(Animation *anim, char *subtitle, bool press_key_to_continue, bool hold_at_end)
 {
   static WINDOW *animation_window = NULL;
   static PANEL  *animation_panel = NULL;
@@ -933,9 +955,36 @@ void play_animation(Animation *anim, bool hold_at_end)
   anim_width = anim->width;
   anim_height = anim->height;
 
+  if (subtitle != NULL)
+    anim_height++;
+
+
+
   for (int i=0; i < anim->numFrames; ++i) {
+    char *theframe = anim->frames[i];
+    if (subtitle != NULL) {
+      theframe = (char *) malloc(strlen(anim->frames[i]) + strlen(subtitle) + 2); /* +2 for extra null and newline */
+      KINDLY_DIE_IF_NULL(theframe);
+      strcpy(theframe, anim->frames[i]);
+      strcat(theframe, "\n");
+      strcat(theframe, subtitle);
+    }
+
     show_message_box_win(&animation_window, &animation_panel,
-             anim->frames[i], &anim_width, &anim_height);
+			 theframe, &anim_width, &anim_height);
+
+    if (subtitle != NULL)
+      free(theframe);
+
+    if (press_key_to_continue) {
+      /* no delay if press_key_to_continue is set: */
+      nodelay(animation_window, true);
+      if (ERR != wgetch(animation_window)) {
+	nodelay(animation_window, false);
+	return;
+      }
+      nodelay(animation_window, false);
+    }
 
     /* we assume the show_message_box_win takes 0 time */
     usleep( (1/(float)anim->fps) * 1000000 );
@@ -943,6 +992,7 @@ void play_animation(Animation *anim, bool hold_at_end)
 
   if (hold_at_end) {
     char *hold_frame = (char *) malloc(strlen(anim->frames[anim->numFrames-1]) + strlen(hold_message) + 1);
+    KINDLY_DIE_IF_NULL(hold_frame);
     strcpy(hold_frame, anim->frames[anim->numFrames-1]);
     strcat(hold_frame, hold_message);
     show_message_box_win(&animation_window, &animation_panel,
@@ -958,4 +1008,11 @@ void play_animation(Animation *anim, bool hold_at_end)
 void cleanup_ncurses()
 {
   endwin();         /* end curses mode */
+}
+
+void kindly_die(char *msg)
+{
+  cleanup_ncurses();
+  printf(msg);
+  exit(-1);
 }

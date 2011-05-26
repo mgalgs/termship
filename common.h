@@ -1,7 +1,7 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
-#define MAX_FRAME_WIDTH 81
+#define MAX_FRAME_WIDTH 200
 #define MAX_FILE_LEAF_NAME 200
 #define MAX_FILE_FULL_PATH 1000
 
@@ -22,6 +22,11 @@
 #define TERMSHIP_PATH_STR xstr(TERMSHIP_PATH)
 #endif
 
+#define KINDLY_DIE_IF_NULL(thing) do {					\
+  if ((thing) == NULL) {						\
+    kindly_die("Malloc failed! " __FILE__ " " xstr(__LINE__) "\n");	\
+  }									\
+} while(0)
 
 
 #endif	/* _COMMON_H */

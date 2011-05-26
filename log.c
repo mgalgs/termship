@@ -13,7 +13,6 @@ void write_to_log(char *st)
       full_path_to_log_file = (char *) malloc(sizeof(char) * MAX_FILE_FULL_PATH);
       strcpy(full_path_to_log_file, TERMSHIP_PATH_STR);
       strcat(full_path_to_log_file, LOG_FILE_NAME);
-      printf("log file is at %s\n", full_path_to_log_file);
   }
   if (thelogfile == NULL) {
     thelogfile = fopen(full_path_to_log_file, "a+");
