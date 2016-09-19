@@ -15,6 +15,7 @@
 #include "screen.h"
 #include "log.h"
 #include "common.h"
+#include "no-more-secrets/src/nms.h"
 
 #define MAX_NAME 100
 
@@ -468,22 +469,24 @@ void do_gameplay(const int sock, int fire)
 
 void title_screen()
 {
-  char *picture[] = {
-    "                                     # #  ( )",
-    "                                  ___#_#___|__",
-    "                              _  |____________|  _",
-    "                       _=====| | |            | | |==== _",
-    "                 =====| |.---------------------------. | |====",
-    "   <--------------------'   .  .  .  .  .  .  .  .   '--------------/",
-    "     \\                                                             /",
-    "      \\_______________________________________________WWS_________/",
-    "  wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
-    "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
-    "   wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
-    NULL
-  };
+  char *picture =  
+    "                                     # #  ( )\n"
+    "                                  ___#_#___|__\n"
+    "                              _  |____________|  _\n"
+    "                       _=====| | |            | | |==== _\n"
+    "                 =====| |.---------------------------. | |====\n"
+    "   <--------------------'   .  .  .  .  .  .  .  .   '--------------/\n"
+    "     \\                                                             /\n"
+    "      \\_______________________________________________WWS_________/\n"
+    "  wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\n"
+    "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\n"
+    "   wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\n";
 
-  print_picture(stdscr, picture);
+  NmsArgs args = INIT_NMSARGS;
+  args.src = picture;
+  nms_exec(&args);
+  clear();
+  //print_picture(stdscr, picture);
 
   /* int numsquiggles = 8; */
   /* int numreps = 2; */

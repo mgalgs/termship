@@ -1,0 +1,3 @@
+[submodule "no-more-secrets"]
+	path = no-more-secrets
+	url = https://github.com/bartobri/no-more-secrets

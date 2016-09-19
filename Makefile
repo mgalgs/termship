@@ -3,6 +3,7 @@
 CC=gcc
 CFLAGS=-g -std=gnu99 -DTERMSHIP_PATH=`pwd` -Wall
 OBJS=termship.o connection.o screen.o gamepieces.o Btypes.o log.o
+NMS=no-more-secrets/src/nms.c
 # CFLAGS += -DTEST_SHIPS
 
 ### Implicit Rules ###
@@ -16,7 +17,7 @@ OBJS=termship.o connection.o screen.o gamepieces.o Btypes.o log.o
 all: termship
 
 termship: $(OBJS) Btypes.h
-	$(CC) $(CFLAGS) -o termship $(OBJS) -lpanel -lmenu -lncursesw
+	$(CC) $(CFLAGS) $(NMS) -o termship $(OBJS) -lpanel -lmenu -lncurses -lncursesw
 
 clean:
 	rm -f *.o
